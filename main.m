@@ -15,37 +15,31 @@ set(0,'defaultAxesFontSize',  22)
 set(0,'DefaultLegendFontSize', 20)
 
 addpath('functions/');
+addpath('Plot/');
 
 
 %% Map creation
 
-map = imread('usgsImageryLayer.tif');
+map = load("Rifugio_Viote.txt");
 
-figure('Name','Real map')
-imshow('usgsImageryLayer.tif', 'InitialMagnification', 'fit');
+s = sqrt(length(map));
+H = zeros(s);
 
-[x,y] = meshgrid(1:size(map,1), 1:size(map,2));
-z = double(map(:,:,1));
+for y_i = 1:s
+    for x_i = 1:s
+        idx = x_i + (y_i-1)*1000;
+        H(x_i,y_i) = map(idx, 3);
+    end
+end
 
-% Plot using mesh
-figure;
-mesh(x,y,z);
+H = flipud(H);
+
+figure('Name','3D map')
+hold on;
+mesh(H);
+colormap('summer');
+contour3(H, 80, 'k', 'LineWidth', 1);
 colorbar;
-
-% Plot using surf (best one)
-figure;
-surf(x, y, z, 'EdgeColor', 'none', 'FaceColor', 'texturemap');
-colorbar;
-
-%% Test changing resolution (coarser mesh)
-
-resolution = 200;
-
-new_x = linspace(1, size(map, 2), resolution); 
-new_y = linspace(1, size(map, 1), resolution); 
-new_z = interp2(x, y, double(map(:,:,1)), new_x', new_y);
-
-figure;
-mesh(new_x, new_y, new_z);
-colorbar;
-
+daspect([1 1 0.5]);
+view(3);
+saveas(gcf, 'Plot/3D_map.eps', 'epsc')
