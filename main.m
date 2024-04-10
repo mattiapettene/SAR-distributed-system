@@ -55,12 +55,12 @@ n = 0;
 while n < nObstacles
     x_idx = randi([1 mapWidth],1);
     y_idx = randi([1 mapLength],1);
-    z_obstacles(x_idx, y_idx) = H(x_idx, y_idx);
+    z_obstacles(x_idx, y_idx) = H(y_idx, x_idx);
     n = n+1;
 end
 
-[y, x] = find(z_obstacles);
-z = z_obstacles(sub2ind(size(z_obstacles), y, x));
+[x, y] = find(z_obstacles);
+z = z_obstacles(sub2ind(size(z_obstacles), x, y));
 
 % Plot dei punti in 3D
 figure;
@@ -79,10 +79,10 @@ grid on;
 %% Test function tree
 [xT, yT, zT, xC, yC, zC] = tree(0,0,0);
 figure;
-surf(xT,yT,zT, 'FaceColor', '#53350A');
+surf(xT,yT,zT, 'FaceColor', '#53350A', "EdgeColor","none");
 hold on;
 axis equal;
-surf(xC,yC,zC, 'FaceColor', '#2A7E19');
+surf(xC,yC,zC, 'FaceColor', '#2A7E19', "EdgeColor","none");
 view(3)
 
 %% Obstacles addition (trees)
@@ -96,7 +96,7 @@ n = 0;
 while n < nObstacles
     x_idx = randi([1 mapWidth],1);
     y_idx = randi([1 mapLength],1);
-    z_val = H(x_idx, y_idx);
+    z_val = H(y_idx, x_idx);
     [xT, yT, zT, xC, yC, zC] = tree(x_idx, y_idx, z_val);
     xyzObstacles{n+1,1} = [xT(:), yT(:), zT(:)];
     xyzObstacles{n+1,2} = [xC(:), yC(:), zC(:)];
