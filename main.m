@@ -71,6 +71,7 @@ colorbar;
 daspect([1 1 0.5]);
 view(3);
 scatter3(x(:),y(:),z(:), 'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r');
+scatter3(1,1,1, 'filled', 'MarkerEdgeColor', 'b', 'MarkerFaceColor', 'b');
 hold off;
 grid on;
 
@@ -157,7 +158,7 @@ hold on
 image(gradmod,'CDataMapping','scaled')
 colorbar
 axis equal
-hImg = imshow(I); 
+hImg = imshow(I,'InitialMagnification', 'fit'); 
 set(hImg, 'AlphaData', 0.6);
 hold off
 
@@ -169,8 +170,21 @@ figure('Name','Real trees location')
 hold on
 spy(double(BW))
 axis equal
-hImg = imshow(I); 
+hImg = imshow(I,  'InitialMagnification', 'fit'); 
 set(hImg, 'AlphaData', 0.6);
 spy(BW);
 hold off
 saveas(gcf, 'Plot/real_trees_satellite.eps', 'epsc')
+
+%% Voronoi tessellation
+
+% Drones starting points
+sp_drone1 = [1,1];
+sp_drone2 = [1,10];
+sp_drone3 = [10,1];
+
+kp = 0.5;
+
+fprintf('Starting Voronoi coverage iteration...\n');
+[c1, c2, c3, v1, v2, v3, a1, a2, a3, b1, b2, b3] = voronoi_coverage(H, sp_drone1, sp_drone2, sp_drone3, kp);
+fprintf('Voronoi coverage iteration finished!\n');
