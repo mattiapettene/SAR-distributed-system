@@ -132,7 +132,7 @@ b2 = boundary2;
 b3 = boundary3;
 
 v1 = vel_lloyd1;
-v2 = vel_lloyd1;
-v3 = vel_lloyd1;
+v2 = vel_lloyd2;
+v3 = vel_lloyd3;
 
 end

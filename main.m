@@ -17,6 +17,15 @@ set(0,'DefaultLegendFontSize', 20)
 addpath('functions/');
 addpath('Plot/');
 
+%% Simulation parameters
+
+dt = 0.1;               % Time step (s)
+fov = 40;               % Camera FoV (m)
+sp_drone1 = [1,1];      % Starting point drone 1
+sp_drone2 = [1,10];     % Starting point drone 2
+sp_drone3 = [10,1];     % Starting point drone 3
+kp = 0.5;               % Voronoi kp parameter
+
 %% Map creation
 
 map = load("torbiera_viote.txt");
@@ -71,7 +80,6 @@ colorbar;
 daspect([1 1 0.5]);
 view(3);
 scatter3(x(:),y(:),z(:), 'filled', 'MarkerEdgeColor', 'r', 'MarkerFaceColor', 'r');
-scatter3(1,1,1, 'filled', 'MarkerEdgeColor', 'b', 'MarkerFaceColor', 'b');
 hold off;
 grid on;
 
@@ -178,13 +186,30 @@ saveas(gcf, 'Plot/real_trees_satellite.eps', 'epsc')
 
 %% Voronoi tessellation
 
-% Drones starting points
-sp_drone1 = [1,1];
-sp_drone2 = [1,10];
-sp_drone3 = [10,1];
-
-kp = 0.5;
-
-fprintf('Starting Voronoi coverage iteration...\n');
+fprintf('\nStarting Voronoi coverage iteration...\n');
 [c1, c2, c3, v1, v2, v3, a1, a2, a3, b1, b2, b3] = voronoi_coverage(H, sp_drone1, sp_drone2, sp_drone3, kp);
 fprintf('Voronoi coverage iteration finished!\n');
+
+%% Coverage path planning
+
+fprintf('\nComputing areas exploration path...\n');
+path1 = coveragePathPlanning(a1, fov, 0);
+path2 = coveragePathPlanning(a2, fov, 0);
+path3 = coveragePathPlanning(a3, fov, 1);
+
+figure('Name', 'Coverage Path');
+hold on;
+fill(a1(b1, 1), a1(b1, 2), [1, 1, 0.4784], 'FaceAlpha', 0.6, 'EdgeColor', 'k', 'LineWidth', 2);
+fill(a2(b2, 1), a2(b2, 2), [1, 1, 0.6196], 'FaceAlpha', 0.6, 'EdgeColor', 'k', 'LineWidth', 2);
+fill(a3(b3, 1), a3(b3, 2), [1, 1, 0.7490], 'FaceAlpha', 0.6, 'EdgeColor', 'k', 'LineWidth', 2);
+plot(path1(1, 1), path1(1, 2),'o', 'MarkerSize', 7, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'r');
+plot(path2(1, 1), path2(1, 2),'o', 'MarkerSize', 7, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'r');
+plot(path3(1, 1), path3(1, 2),'o', 'MarkerSize', 7, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'r');
+plot(path1(:,1), path1(:,2), '-', 'Color', 'r', 'LineWidth', 2);
+plot(path2(:,1), path2(:,2), '-', 'Color', 'r', 'LineWidth', 2);
+plot(path3(:,1), path3(:,2), '-', 'Color', 'r', 'LineWidth', 2);
+hold off;
+axis equal;
+saveas(gcf, 'Plot/coverage_path.eps', 'epsc')
+
+fprintf('Computing areas exploration path finished!\n');
