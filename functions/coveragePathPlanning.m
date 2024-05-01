@@ -17,8 +17,8 @@ index_x = [];
 index_y = [];
 path_x = [];
 path_y = [];
-for i = 20:d:size(area, 1)
-    for j = 20:d:size(area, 2)
+for i = round(d/2):d:size(area, 1)
+    for j = round(d/2):d:size(area, 2)
         index_x = [index_x, i];
         index_y = [index_y, j];
     end
