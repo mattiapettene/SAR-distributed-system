@@ -19,15 +19,15 @@ addpath('Plot/');
 
 %% Simulation parameters
 
-dt = 0.1;               % Time step (s)
+dt = 2;                 % Time step (s)
 fov = 40;               % Camera FoV (m)
 sp_drone1 = [1,1];      % Starting point drone 1
 sp_drone2 = [1,10];     % Starting point drone 2
 sp_drone3 = [10,1];     % Starting point drone 3
-kp = 0.5;               % Voronoi kp parameter
+kp = 1/dt;              % Voronoi kp parameter
 threshold = 0.8;        % Set target accuracy [m]
 vmax = [10,10,10];      % Drone maximum velocities (vx, vy, vz) [m/s]
-offset = 120;            % Distance from ground
+offset = 120;           % Distance from ground
 
 %% Map creation
 
@@ -134,7 +134,7 @@ while n <= nForestTree
     n = n+1;
 end
 
-% set occupancy around tree locations
+% Set occupancy around tree locations
 toleranceLevel = 2;
 new_grid = occupancyGrid;
 
@@ -154,6 +154,7 @@ end
 
 occupancyGrid = new_grid;
 clear new_grid;
+spy(occupancyGrid);
 
 
 % Trees plot
@@ -214,14 +215,14 @@ pose3 = [sp_drone3 H(sp_drone3(2),sp_drone3(1))+offset 0];
 i=1;
 while i < size(v1,1)+1
     
-    u1 = Drone_Verticalcontrol(H,pose1(i,:),v1(i,:),1/kp);
-    pose1 = [pose1; Drone_Kine(H,pose1(i,:),u1,1/kp)];
+    u1 = Drone_Verticalcontrol(H,pose1(i,:),v1(i,:),dt);
+    pose1 = [pose1; Drone_Kine(H,pose1(i,:),u1,dt)];
 
-    u2 = Drone_Verticalcontrol(H,pose2(i,:),v2(i,:),1/kp);
-    pose2 = [pose2; Drone_Kine(H,pose2(i,:),u2,1/kp)];
+    u2 = Drone_Verticalcontrol(H,pose2(i,:),v2(i,:),dt);
+    pose2 = [pose2; Drone_Kine(H,pose2(i,:),u2,dt)];
 
-    u3 = Drone_Verticalcontrol(H,pose3(i,:),v3(i,:),1/kp);
-    pose3 = [pose3; Drone_Kine(H,pose3(i,:),u3,1/kp)];
+    u3 = Drone_Verticalcontrol(H,pose3(i,:),v3(i,:),dt);
+    pose3 = [pose3; Drone_Kine(H,pose3(i,:),u3,dt)];
 
     i = i + 1;
 end
@@ -238,6 +239,7 @@ plot3(pose1(:, 1), pose1(:, 2), pose1(:, 3), '-or',LineWidth=4,MarkerSize=4);
 plot3(pose2(:, 1), pose2(:, 2), pose2(:, 3), '-om',LineWidth=4,MarkerSize=4);
 plot3(pose3(:, 1), pose3(:, 2), pose3(:, 3), '-oc',LineWidth=4,MarkerSize=4);
 grid on;
+axis equal;
 xlabel('X');
 ylabel('Y');
 zlabel('Z');
@@ -284,10 +286,10 @@ for n = 1:size(target_list,1)
     i = 1;
     while i % movements to get there
         pose_actual = pose_hist(end,:);
-        u = Drone_control(H,pose_actual,destin,1/kp,vmax,offset);
+        u = Drone_control(H,pose_actual,destin,dt,vmax,offset);
 
         % update the list of pose
-        pose_new = Drone_Kine(H,pose_actual,u,1/kp,offset);
+        pose_new = Drone_Kine(H,pose_actual,u,dt,offset);
         pose_hist = [pose_hist; pose_new];
               
         if i >= 2000
@@ -319,18 +321,39 @@ hold off
 
 %% Update drone position function test
 
-pose_hist_d1 = updateDronePosition(H, path1, sp_drone1, vmax, offset, kp, threshold);
-pose_hist_d2 = updateDronePosition(H, path2, sp_drone2, vmax, offset, kp, threshold);
-pose_hist_d3 = updateDronePosition(H, path3, sp_drone2, vmax, offset, kp, threshold);
+pose_hist_d1 = updateDronePosition(H, path1, sp_drone1, vmax, offset, dt, threshold);
+pose_hist_d2 = updateDronePosition(H, path2, sp_drone2, vmax, offset, dt, threshold);
+pose_hist_d3 = updateDronePosition(H, path3, sp_drone2, vmax, offset, dt, threshold);
 
 figure('Name','Test function')
 hold on
 plotScenario(H, xyzObstacles, nForestTree, nObstaclesrand);
 plot3(pose_hist_d1(:, 1), pose_hist_d1(:, 2), pose_hist_d1(:, 3), '-or', LineWidth=2, MarkerSize=2);
-plot3(pose_hist_d2(:, 1), pose_hist_d2(:, 2), pose_hist_d2(:, 3), '-or', LineWidth=2, MarkerSize=2);
-plot3(pose_hist_d3(:, 1), pose_hist_d3(:, 2), pose_hist_d3(:, 3), '-or', LineWidth=2, MarkerSize=2);
+%plot3(pose_hist_d2(:, 1), pose_hist_d2(:, 2), pose_hist_d2(:, 3), '-or', LineWidth=2, MarkerSize=2);
+%plot3(pose_hist_d3(:, 1), pose_hist_d3(:, 2), pose_hist_d3(:, 3), '-or', LineWidth=2, MarkerSize=2);
 grid on;
 xlabel('X');
 ylabel('Y');
 zlabel('Z');
 hold off
+
+%% Update drone position function test
+
+pose_hist_d1 = updateDronePosition(H, c1, sp_drone1, vmax, offset, dt, threshold);
+pose_hist_d2 = updateDronePosition(H, c2, sp_drone2, vmax, offset, dt, threshold);
+pose_hist_d3 = updateDronePosition(H, c3, sp_drone2, vmax, offset, dt, threshold);
+
+figure('Name','Test function')
+hold on
+plotScenario(H, xyzObstacles, nForestTree, nObstaclesrand);
+plot3(pose_hist_d1(:, 1), pose_hist_d1(:, 2), pose_hist_d1(:, 3), '-or', LineWidth=2, MarkerSize=2);
+plot3(pose_hist_d2(:, 1), pose_hist_d2(:, 2), pose_hist_d2(:, 3), '-oc', LineWidth=2, MarkerSize=2);
+plot3(pose_hist_d3(:, 1), pose_hist_d3(:, 2), pose_hist_d3(:, 3), '-om', LineWidth=2, MarkerSize=2);
+grid on;
+view(3);
+xlabel('X');
+ylabel('Y');
+zlabel('Z');
+hold off
+
+

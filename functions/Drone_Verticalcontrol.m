@@ -20,7 +20,7 @@ end
 deltax = xyVor(1)*Dt;
 deltay = xyVor(2)*Dt;
 
-newpos = [init_state(1)+deltax init_state(2)+deltay];
+newpos = round([init_state(1)+deltax init_state(2)+deltay]);
 
 newheigth = environ(newpos(2),newpos(1));
 oldheigth = environ(init_state(2),init_state(1));

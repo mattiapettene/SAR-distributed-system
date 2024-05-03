@@ -1,4 +1,4 @@
-function pose_hist = updateDronePosition(H, path, sp_drone, vmax, offset, kp, threshold)
+function pose_hist = updateDronePosition(H, path, sp_drone, vmax, offset, Dt, threshold)
 
 target_list = path;
 
@@ -14,10 +14,10 @@ for n = 1:size(target_list,1)
     i = 1;
     while i % movements to get there
         pose_actual = pose_hist(end,:);
-        u = Drone_control(H,pose_actual,destin,1/kp,vmax,offset);
+        u = Drone_control(H,pose_actual,destin,Dt,vmax,offset);
 
         % update the list of pose
-        pose_new = Drone_Kine(H,pose_actual,u,1/kp,offset);
+        pose_new = Drone_Kine(H,pose_actual,u,Dt,offset);
         pose_hist = [pose_hist; pose_new];
               
         if i >= 2000
