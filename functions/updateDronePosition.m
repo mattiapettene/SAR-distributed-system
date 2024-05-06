@@ -27,7 +27,7 @@ for n = 1:size(path,1)
         u = Drone_control(H,pose_actual,destin,Dt,vmax,offset);
 
         % update the list of pose
-        pose_new = Drone_Kine(H,pose_actual,u,Dt,offset);
+        pose_new = Drone_Kine(H,pose_actual,u,Dt,offset,0);
         pose_hist(pose_hist_index+1,:,id) = pose_new;
         
         pose_hist_index = pose_hist_index + 1;
