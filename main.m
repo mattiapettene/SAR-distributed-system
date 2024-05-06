@@ -270,90 +270,152 @@ saveas(gcf, 'Plot/coverage_path.eps', 'epsc')
 
 fprintf('Computing areas exploration path finished!\n');
 
-%% Simulation (to be extended to three drones)
 
-target_list = c3;
+%% My test dt update
 
-% Set here the first position - origin of the trajectory
-pose_hist = [1,1,H(1,1)+offset,0];
+victims = [1000 1000; randi(1000) randi(1000)];
+n = 3; %numero droni
 
-% Following every coverage path points
-for n = 1:size(target_list,1)
-    
-    % Coverage path point to be reached
-    destin = [target_list(n,:), H(target_list(n,2),target_list(n,1))+offset, 0];
+drone_victim = zeros(1,n);
 
-    i = 1;
-    while i % movements to get there
-        pose_actual = pose_hist(end,:);
-        u = Drone_control(H,pose_actual,destin,dt,vmax,offset);
+conditions = true(1,n);
+target_index = ones(1,n);
+pose_hist = zeros(1,4,n); % lista posizioni + layer(drone)
+pose_hist(1,:,1) = [sp_drone1, H(sp_drone1(2),sp_drone1(1))+offset,0];
+pose_hist(1,:,2) = [sp_drone2, H(sp_drone2(2),sp_drone2(1))+offset,0];
+pose_hist(1,:,3) = [sp_drone3, H(sp_drone3(2),sp_drone3(1))+offset,0];
 
-        % update the list of pose
-        pose_new = Drone_Kine(H,pose_actual,u,dt,offset);
-        pose_hist = [pose_hist; pose_new];
-              
-        if i >= 2000
-            error('Error. Taking over 1000 iteration to reach next point: [%i,%i]',target_list(n,1),target_list(n,2));
-        end
+time = 1;
+while sum(conditions)
+    % Drone 1
+    if conditions(1)
+        % Positions for each iteration
+        target = [path1(target_index(1),:), H(path1(target_index(1),2),path1(target_index(1),1))+offset, 0];
+        actual_pose = pose_hist(time,:,1);
 
-        i = i+1;
+        % compute control and kine for 1 step
+        u = Drone_control(H,actual_pose,target,dt,vmax,offset);
+        new_pose = Drone_Kine(H,actual_pose,u,dt,offset);
+        pose_hist(time+1,:,1) = new_pose;
 
         % check if it's reached
-        if norm(destin - pose_new) <= threshold
-            i = 0;
+        if norm(target - new_pose) <= threshold
+            target_index(1) = target_index(1) + 1;
+        end
+        if target_index(1) == size(path1,1)+1
+            conditions(1) = false;
+        end
+
+        dist = pdist2(new_pose(1:2),victims);
+        mindist = min(dist);
+        if mindist <= fov/2
+            drone_victim(1) = 1;
+            break;
+        end
+
+    end
+
+    % Drone 2
+    if conditions(2)
+        % Positions for each iteration
+        target = [path2(target_index(2),:), H(path2(target_index(2),2),path2(target_index(2),1))+offset, 0];
+        actual_pose = pose_hist(time,:,2);
+
+        % compute control and kine for 1 step
+        u = Drone_control(H,actual_pose,target,dt,vmax,offset);
+        new_pose = Drone_Kine(H,actual_pose,u,dt,offset);
+        pose_hist(time+1,:,2) = new_pose;
+
+        % check if it's reached
+        if norm(target - new_pose) <= threshold
+            target_index(2) = target_index(2) + 1;
+        end
+        if target_index(2) == size(path2,1)+1
+            conditions(2) = false;
+        end
+
+        dist = pdist2(new_pose(1:2),victims);
+        mindist = min(dist);
+        if mindist <= fov/2
+            drone_victim(2) = 1;
+            break;
         end
     end
 
-    n = n+1;
+    % Drone 3
+    if conditions(3)
+        % Positions for each iteration
+        target = [path3(target_index(3),:), H(path3(target_index(3),2),path3(target_index(3),1))+offset, 0];
+        actual_pose = pose_hist(time,:,3);
+
+        % compute control and kine for 1 step
+        u = Drone_control(H,actual_pose,target,dt,vmax,offset);
+        new_pose = Drone_Kine(H,actual_pose,u,dt,offset);
+        pose_hist(time+1,:,3) = new_pose;
+
+        % check if it's reached
+        if norm(target - new_pose) <= threshold
+            target_index(3) = target_index(3) + 1;
+        end
+        if target_index(3) == size(path3,1)+1
+            conditions(3) = false;
+        end
+
+        dist = pdist2(new_pose(1:2),victims);
+        mindist = min(dist);
+        if mindist <= fov/2
+            drone_victim(3) = 1;
+            break;
+        end
+    end
     
+    time = time + 1;
+    if time >= 1000
+        error('Error. Taking over 1000 time steps to complete the simulation');
+    end
+
 end
 
-figure('Name','Ideal simulation path')
+% rendezvous
+robot_depl = [200 1; 210 1];
+
+for i = 1 : size(drone_victim,2)
+    if drone_victim(i) == 1
+        continue
+    end
+
+    pose_hist = updateDronePosition(H,robot_depl(i,:),pose_hist,vmax,offset,dt,threshold,i);
+end
+
+
+%% test plot
+
+figure('Name','Test rendezvous')
 hold on
 plotScenario(H, xyzObstacles, nForestTree, nObstaclesrand);
-plot3(pose_hist(:, 1), pose_hist(:, 2), pose_hist(:, 3), '-or', LineWidth=2, MarkerSize=2);
-grid on;
-xlabel('X');
-ylabel('Y');
-zlabel('Z');
-hold off
 
+plot3(victims(2,1),victims(2,2),H(victims(2,2),victims(2,1))+offset, 'p', 'MarkerSize', 20, 'MarkerFaceColor', 'y');
 
-%% Update drone position function test
+fullrows = pose_hist(:,:,1);
+fullrows = fullrows(fullrows(:,3) ~= 0, :);
+plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-or', 'LineWidth', 2, 'MarkerSize', 2);
 
-pose_hist_d1 = updateDronePosition(H, path1, sp_drone1, vmax, offset, dt, threshold);
-pose_hist_d2 = updateDronePosition(H, path2, sp_drone2, vmax, offset, dt, threshold);
-pose_hist_d3 = updateDronePosition(H, path3, sp_drone2, vmax, offset, dt, threshold);
+fullrows = pose_hist(:,:,2);
+fullrows = fullrows(fullrows(:,3) ~= 0, :);
+plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-oc', 'LineWidth', 2, 'MarkerSize', 2);
 
-figure('Name','Test function')
-hold on
-plotScenario(H, xyzObstacles, nForestTree, nObstaclesrand);
-plot3(pose_hist_d1(:, 1), pose_hist_d1(:, 2), pose_hist_d1(:, 3), '-or', LineWidth=2, MarkerSize=2);
-%plot3(pose_hist_d2(:, 1), pose_hist_d2(:, 2), pose_hist_d2(:, 3), '-or', LineWidth=2, MarkerSize=2);
-%plot3(pose_hist_d3(:, 1), pose_hist_d3(:, 2), pose_hist_d3(:, 3), '-or', LineWidth=2, MarkerSize=2);
-grid on;
-xlabel('X');
-ylabel('Y');
-zlabel('Z');
-hold off
+fullrows = pose_hist(:,:,3);
+fullrows = fullrows(fullrows(:,3) ~= 0, :);
+plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-om', 'LineWidth', 2, 'MarkerSize', 2);
 
-%% Update drone position function test
-
-pose_hist_d1 = updateDronePosition(H, c1, sp_drone1, vmax, offset, dt, threshold);
-pose_hist_d2 = updateDronePosition(H, c2, sp_drone2, vmax, offset, dt, threshold);
-pose_hist_d3 = updateDronePosition(H, c3, sp_drone2, vmax, offset, dt, threshold);
-
-figure('Name','Test function')
-hold on
-plotScenario(H, xyzObstacles, nForestTree, nObstaclesrand);
-plot3(pose_hist_d1(:, 1), pose_hist_d1(:, 2), pose_hist_d1(:, 3), '-or', LineWidth=2, MarkerSize=2);
-plot3(pose_hist_d2(:, 1), pose_hist_d2(:, 2), pose_hist_d2(:, 3), '-oc', LineWidth=2, MarkerSize=2);
-plot3(pose_hist_d3(:, 1), pose_hist_d3(:, 2), pose_hist_d3(:, 3), '-om', LineWidth=2, MarkerSize=2);
 grid on;
 view(3);
 xlabel('X');
 ylabel('Y');
 zlabel('Z');
 hold off
+
+
+
 
 
