@@ -1,5 +1,16 @@
 function pose_hist = updateDronePosition(H, path, sp_drone, vmax, offset, Dt, threshold)
 
+% Cumpute the trajectory given a list of target positions considering
+% limitations.
+% INPUTS:
+%   H           -> environment
+%   path        -> list of target positions (just x-y)
+%   sp_drone    -> starting point drone
+%   vmax        -> vector containing the max velocities in x-y-z
+%   offset      -> distance from the ground level (m)
+%   Dt          -> temporal interval
+%   threshold   -> distance from the target inside which it is reached
+
 target_list = path;
 
 % Set here the first position - origin of the trajectory
@@ -31,8 +42,6 @@ for n = 1:size(target_list,1)
             i = 0;
         end
     end
-
-    n = n+1;
     
 end
 end
