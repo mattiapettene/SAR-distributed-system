@@ -357,3 +357,37 @@ zlabel('Z');
 hold off
 
 
+%% Test isObstacle function
+
+figure;
+imagesc(occupancyGrid);
+hold on;
+
+start = [randi(1000), randi(1000)];
+goal = [randi(1000), randi(1000)];
+
+test_path = [start; goal];
+
+isObstacle(occupancyGrid, start, goal)
+
+plot(test_path(:,1), test_path(:,2), '-or', LineWidth=2, MarkerSize=3);
+
+axis equal;
+
+%% RRT* path planning
+
+map = occupancyGrid;
+
+start = [10, 200];
+goal = [randi(size(map, 1)), randi(size(map, 2))];
+
+maxIterations = 800;
+stepSize = 20;
+radius = 60;
+
+goalbias = 1;
+bias = 0.4;
+bias_radius = 200;
+plot = 1;
+
+[rrt_tree, rrt_path] = rrt_star(map, start, goal, maxIterations, stepSize, radius, goalbias, bias, bias_radius, plot);
