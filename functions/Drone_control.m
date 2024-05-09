@@ -4,8 +4,8 @@ function u = Drone_control(environment,init_state,destination,Dt,maxvel,offset)
 %   cumpute the velocities in x,y,z,theta that the drone has to do in order to reach the target position. 
 % INPUT:
 %   environment -> the heigth matrix
-%   init_state  -> it is a vector with the initial position (x,y)
-%   destination -> it is a vector of 2 colomns with the x y
+%   init_state  -> it is a vector with the initial position (x,y,z,theta)
+%   destination -> it is a vector of 4 colomns with the x y z theta
 %   Dt          -> time step
 %   maxvel      -> vecor with the max velocities in x and y
 

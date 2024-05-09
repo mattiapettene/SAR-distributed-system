@@ -1,4 +1,4 @@
-function pose = Drone_Kine(environ,initstate,u,Dt,offset)
+function pose = Drone_Kine(environ,initstate,u,Dt,offset,modo)
 %Drone_Kine is used to compute the kinematics of a drone given the map, the initiale state (x,y,z,th), the
 %controls (vx,vy,vz,omega) and the time step
 %    The input are:
@@ -6,6 +6,7 @@ function pose = Drone_Kine(environ,initstate,u,Dt,offset)
 %    initstate-> it is the initial position and orientation
 %    u        -> it is the vector with the control velocities
 %    Dt       -> is the time step
+%    modo     -> indicate if it has to check the vertical offset
 
 
 if numel(u) ~= 4
@@ -21,7 +22,7 @@ theta = initstate(4);
 
 % check offset
 oldheigth = environ(initstate(2),initstate(1));
-if z == oldheigth
+if z == oldheigth && modo == 1
    warning('Forget to add offset in previous state. Adding now \n');
    z = oldheigth + offset;
 end
