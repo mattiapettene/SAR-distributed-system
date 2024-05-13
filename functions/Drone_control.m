@@ -26,7 +26,6 @@ if size(maxvel) > 3
 end
 
 
-
 % drone max velocities
 if ~exist('maxvel','var')
     vmaxx = 5;
@@ -40,11 +39,13 @@ vmaxz = maxvel(3);
 
 dx = destination(1) - init_state(1);
 dy = destination(2) - init_state(2);
-dz = environment(destination(2),destination(1)) - init_state(3) + offset;
+dz = interp2(environment,destination(1),destination(2), 'linear') - init_state(3) + offset;
+dth= atan2(dy,dx) - init_state(4);
 
 vx = dx/Dt;
 vy = dy/Dt;
 vz = dz/Dt;
+omega = dth/Dt;
 
 if abs(vx) > vmaxx
     warning('Velocity in x (%.2f) has overcome the max!',vx);
@@ -59,9 +60,6 @@ if abs(vz) > vmaxz
     vz = vmaxz*sign(vz);
 end
 
-% omega = (init_state(4)-atan2(dy,dx))/Dt;
-
-
-u = [vx vy vz 0];
+u = [vx vy vz omega];
 
 end

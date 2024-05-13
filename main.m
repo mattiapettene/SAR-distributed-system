@@ -391,6 +391,7 @@ for i = 1 : size(drone_victim,2)
 end
 
 
+%scale = 10;
 figure('Name','Test rendezvous')
 hold on
 plotScenario(H, xyzObstacles, nForestTree, nObstaclesrand);
@@ -400,14 +401,51 @@ plot3(victims(2,1),victims(2,2),H(victims(2,2),victims(2,1))+offset, 'p', 'Marke
 fullrows = pose_hist(:,:,1);
 fullrows = fullrows(fullrows(:,3) ~= 0, :);
 plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-or', 'LineWidth', 2, 'MarkerSize', 2);
+% % Loop attraverso ogni posizione e plotta la freccia di orientazione nel piano XY
+% for i = 1:size(fullrows,1)
+%     % Estrai l'angolo theta da ogni punto
+%     theta = fullrows(i,4);
+% 
+%     % Calcola i componenti x e y della freccia di orientazione nel piano XY
+%     x_comp = cos(theta)*scale;
+%     y_comp = sin(theta)*scale;
+% 
+%     % Plotta la freccia di orientazione nel piano XY
+%     quiver3(fullrows(i,1), fullrows(i,2), fullrows(i,3), x_comp, y_comp, 0, 'Color', 'k', 'LineWidth', 2);
+% end
 
 fullrows = pose_hist(:,:,2);
 fullrows = fullrows(fullrows(:,3) ~= 0, :);
 plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-oc', 'LineWidth', 2, 'MarkerSize', 2);
+% % Loop attraverso ogni posizione e plotta la freccia di orientazione nel piano XY
+% for i = 1:size(fullrows,1)
+%     % Estrai l'angolo theta da ogni punto
+%     theta = fullrows(i,4);
+% 
+%     % Calcola i componenti x e y della freccia di orientazione nel piano XY
+%     x_comp = cos(theta)*scale;
+%     y_comp = sin(theta)*scale;
+% 
+%     % Plotta la freccia di orientazione nel piano XY
+%     quiver3(fullrows(i,1), fullrows(i,2), fullrows(i,3), x_comp, y_comp, 0, 'Color', 'k', 'LineWidth', 2);
+% end
 
 fullrows = pose_hist(:,:,3);
 fullrows = fullrows(fullrows(:,3) ~= 0, :);
 plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-om', 'LineWidth', 2, 'MarkerSize', 2);
+% % Loop attraverso ogni posizione e plotta la freccia di orientazione nel piano XY
+% for i = 1:size(fullrows,1)
+%     % Estrai l'angolo theta da ogni punto
+%     theta = fullrows(i,4);
+% 
+%     % Calcola i componenti x e y della freccia di orientazione nel piano XY
+%     x_comp = cos(theta)*scale;
+%     y_comp = sin(theta)*scale;
+% 
+%     % Plotta la freccia di orientazione nel piano XY
+%     quiver3(fullrows(i,1), fullrows(i,2), fullrows(i,3), x_comp, y_comp, 0, 'Color', 'k', 'LineWidth', 2,'MaxHeadSize', 5);
+% end
+
 
 grid on;
 view(3);
@@ -469,18 +507,37 @@ spy(occupancyGridComplete);
 
 
 %% MOVEMENTS
+offset_rdd = 20;
+farward = 10;
+lateral = fov;
+
+formation = double(~drone_victim);
+formation(find(formation,1,'first')) = -1;
 
 path4 = test_traj;
-path1d(:,1) = test_traj(:, 1) + 20;
-path1d(:,2) = test_traj(:, 2)+20;
-path2d(:,1) = test_traj(:, 1);
-path2d(:,2) = test_traj(:, 2)+20;
-path3d(:,1) = test_traj(:, 1) - 20;
-path3d(:,2) = test_traj(:, 2)+20;
+theta = atan2((test_traj(2,2)-test_traj(1,2)),(test_traj(2,1)-test_traj(1,1)));
+
+% build formation
+path1d(:,1) = test_traj(:, 1) + abs(formation(1))*cos(theta)*farward + formation(1)*cos(pi/2+theta)*lateral;
+path1d(:,2) = test_traj(:, 2) + abs(formation(1))*sin(theta)*farward + formation(1)*sin(pi/2+theta)*lateral;
+path2d(:,1) = test_traj(:, 1) + abs(formation(2))*cos(theta)*farward + formation(2)*cos(pi/2+theta)*lateral;
+path2d(:,2) = test_traj(:, 2) + abs(formation(2))*sin(theta)*farward + formation(2)*sin(pi/2+theta)*lateral;
+path3d(:,1) = test_traj(:, 1) + abs(formation(3))*cos(theta)*farward + formation(3)*cos(pi/2+theta)*lateral;
+path3d(:,2) = test_traj(:, 2) + abs(formation(3))*sin(theta)*farward + formation(3)*sin(pi/2+theta)*lateral;
+
+% anti negative
+path1d(path1d < 1) = 1;
+path2d(path2d < 1) = 1;
+path3d(path3d < 1) = 1;
+path1d(path1d > 1001) = 1000;
+path2d(path2d > 1001) = 1000;
+path3d(path3d > 1001) = 1000;
 
 conditions = true(1,n+1);
 conditions(logical(drone_victim)) = false;
 target_index = ones(1,n+1);
+in_form = zeros(1,n);
+in_form = in_form + drone_victim;
 rdd_hist = zeros(1,4,n+1); % position 4 is for the robot
 
 %initialize
@@ -492,101 +549,78 @@ rdd_hist(1,:,2) = pose_hist(col,:,2);
 rdd_hist(1,:,3) = pose_hist(col,:,3);
 rdd_hist(1,:,4) = [robot_depl(2,:), H(robot_depl(2,2),robot_depl(2,1)),0];
 
+
+
 time = 1;
-while sum(conditions)
-    % Drone 1
-    if conditions(1)
-        % Positions for each iteration
-        target = [path1d(target_index(1),:), H(path1d(target_index(1),2),path1d(target_index(1),1))+offset, 0];
+while sum(in_form) < 3
+   
+    target1 = [path1d(target_index(1),:), interp2(H,path1d(target_index(1),2),path1d(target_index(1),1), 'linear')+offset_rdd, 0];
+    target2 = [path2d(target_index(2),:), interp2(H,path2d(target_index(2),2),path2d(target_index(2),1), 'linear')+offset_rdd, 0];
+    target3 = [path3d(target_index(3),:), interp2(H,path3d(target_index(3),2),path3d(target_index(3),1), 'linear')+offset_rdd, 0];
+    
+    % drone 1
+    if conditions(1) && in_form(1) == 0
         actual_pose = rdd_hist(time,:,1);
-
+        
         % compute control and kine for 1 step
-        u = Drone_control(H,actual_pose,target,dt,vmax,offset);
-        new_pose = Drone_Kine(H,actual_pose,u,dt,offset,0);
+        u = Drone_control(H,actual_pose,target1,dt,vmax,offset_rdd);
+        new_pose = Drone_Kine(H,actual_pose,u,dt,offset_rdd,0);
         rdd_hist(time+1,:,1) = new_pose;
-
+        
         % check if it's reached
-        if norm(target - new_pose) <= threshold
+        if norm(target1(1:3) - new_pose(1:3)) <= threshold
+            in_form(1) = 1;
             target_index(1) = target_index(1) + 1;
         end
-        if target_index(1) == size(path1d,1)+1
-            conditions(1) = false;
-        end
-        
-        % Qua aggiorna OccupancyGridComplete & RRT
 
+    elseif conditions(1) && in_form(1) == 1
+        rdd_hist(time+1,:,1) = rdd_hist(time,:,1);
     end
 
-    % Drone 2
-    if conditions(2)
-        % Positions for each iteration
-        target = [path2d(target_index(2),:), H(path2d(target_index(2),2),path2d(target_index(2),1))+offset, 0];
+    % drone 2
+    if conditions(2) && in_form(2) == 0
         actual_pose = rdd_hist(time,:,2);
-
+        
         % compute control and kine for 1 step
-        u = Drone_control(H,actual_pose,target,dt,vmax,offset);
-        new_pose = Drone_Kine(H,actual_pose,u,dt,offset,0);
+        u = Drone_control(H,actual_pose,target2,dt,vmax,offset_rdd);
+        new_pose = Drone_Kine(H,actual_pose,u,dt,offset_rdd,0);
         rdd_hist(time+1,:,2) = new_pose;
-
+        
         % check if it's reached
-        if norm(target - new_pose) <= threshold
+        if norm(target2(1:3) - new_pose(1:3)) <= threshold
+            in_form(2) = 1;
             target_index(2) = target_index(2) + 1;
         end
-        if target_index(2) == size(path2d,1)+1
-            conditions(2) = false;
-        end
 
-        % Qua aggiorna RRT & occupancy
+    elseif conditions(2) && in_form(2) == 1
+        rdd_hist(time+1,:,2) = rdd_hist(time,:,2);
     end
 
-    % Drone 3
-    if conditions(3)
-        % Positions for each iteration
-        target = [path3d(target_index(3),:), H(path3d(target_index(3),2),path3d(target_index(3),1))+offset, 0];
+    % drone 3
+    if conditions(3) && in_form(3) == 0
         actual_pose = rdd_hist(time,:,3);
-
+        
         % compute control and kine for 1 step
-        u = Drone_control(H,actual_pose,target,dt,vmax,offset);
-        new_pose = Drone_Kine(H,actual_pose,u,dt,offset,0);
+        u = Drone_control(H,actual_pose,target3,dt,vmax,offset_rdd);
+        new_pose = Drone_Kine(H,actual_pose,u,dt,offset_rdd,0);
         rdd_hist(time+1,:,3) = new_pose;
-
+        
         % check if it's reached
-        if norm(target - new_pose) <= threshold
+        if norm(target3(1:3) - new_pose(1:3)) <= threshold
+            in_form(3) = 1;
             target_index(3) = target_index(3) + 1;
         end
-        if target_index(3) == size(path3d,1)+1
-            conditions(3) = false;
-        end
 
-        %Qua aggiornata occupancy & rrt
+    elseif conditions(3) && in_form(3) == 1
+        rdd_hist(time+1,:,3) = rdd_hist(time,:,3);
     end
 
-    % Robot 
-    if conditions(4)
-        % Positions for each iteration
-        target = [path4(target_index(4),:), H(path4(target_index(4),2),path4(target_index(4),1)), 0];
-        actual_pose = rdd_hist(time,:,4);
-
-        % compute control and kine for 1 step
-        u = Drone_control(H,actual_pose,target,dt,vmax,0);
-        new_pose = Drone_Kine(H,actual_pose,u,dt,offset,0);
-        rdd_hist(time+1,:,4) = new_pose;
-
-        % check if it's reached
-        if norm(target - new_pose) <= threshold
-            target_index(4) = target_index(4) + 1;
-        end
-        if target_index(4) == size(path4,1)+1
-            conditions(4) = false;
-        end
-
-        dist = pdist2(new_pose(1:2),victims);
-        mindist = min(dist);
-        if mindist <= fov/2
-            drone_victim(3) = 1;
-            break;
-        end
+    % robot
+    if sum(in_form) <= 3
+        rdd_hist(time+1,:,4) = rdd_hist(time,:,4);
     end
+
+
     
     time = time + 1;
     if time >= 1000
@@ -594,12 +628,110 @@ while sum(conditions)
     end
 
 end
+% adesso sono in posizione per partire in formazione. unico controllo u per
+% tutti. Occhio a ripartire da rdd_hist già riempita per un po'
 
-
-
-
-% teta per posizioni
-%  dron
+% while sum(conditions)
+%     % Drone 1
+%     if conditions(1)
+%         % Positions for each iteration
+%         target = [path1d(target_index(1),:), interp2(H,path1d(target_index(1),2),path1d(target_index(1),1), 'linear')+offset_rdd, 0];
+%         actual_pose = rdd_hist(time,:,1);
+% 
+%         % compute control and kine for 1 step
+%         u = Drone_control(H,actual_pose,target,dt,vmax,offset_rdd);
+%         new_pose = Drone_Kine(H,actual_pose,u,dt,offset_rdd,0);
+%         rdd_hist(time+1,:,1) = new_pose;
+% 
+%         % check if it's reached
+%         if norm(target - new_pose) <= threshold
+%             target_index(1) = target_index(1) + 1;
+%         end
+%         if target_index(1) == size(path1d,1)+1
+%             conditions(1) = false;
+%         end
+% 
+%         % Qua aggiorna OccupancyGridComplete & RRT
+% 
+%     end
+% 
+%     % Drone 2
+%     if conditions(2)
+%         % Positions for each iteration
+%         target = [path2d(target_index(2),:), interp2(H,path2d(target_index(2),2),path2d(target_index(2),1), 'linear')+offset_rdd, 0];
+%         actual_pose = rdd_hist(time,:,2);
+% 
+%         % compute control and kine for 1 step
+%         u = Drone_control(H,actual_pose,target,dt,vmax,offset_rdd);
+%         new_pose = Drone_Kine(H,actual_pose,u,dt,offset_rdd,0);
+%         rdd_hist(time+1,:,2) = new_pose;
+% 
+%         % check if it's reached
+%         if norm(target - new_pose) <= threshold
+%             target_index(2) = target_index(2) + 1;
+%         end
+%         if target_index(2) == size(path2d,1)+1
+%             conditions(2) = false;
+%         end
+% 
+%         % Qua aggiorna RRT & occupancy
+%     end
+% 
+%     % Drone 3
+%     if conditions(3)
+%         % Positions for each iteration
+%         target = [path3d(target_index(3),:), interp2(H,path3d(target_index(3),2),path3d(target_index(3),1), 'linear')+offset_rdd, 0];
+%         actual_pose = rdd_hist(time,:,3);
+% 
+%         % compute control and kine for 1 step
+%         u = Drone_control(H,actual_pose,target,dt,vmax,offset_rdd);
+%         new_pose = Drone_Kine(H,actual_pose,u,dt,offset_rdd,0);
+%         rdd_hist(time+1,:,3) = new_pose;
+% 
+%         % check if it's reached
+%         if norm(target - new_pose) <= threshold
+%             target_index(3) = target_index(3) + 1;
+%         end
+%         if target_index(3) == size(path3d,1)+1
+%             conditions(3) = false;
+%         end
+% 
+%         %Qua aggiornata occupancy & rrt
+%     end
+% 
+%     % Robot 
+%     if conditions(4)
+%         % Positions for each iteration
+%         target = [path4(target_index(4),:), H(path4(target_index(4),2),path4(target_index(4),1)), 0];
+%         actual_pose = rdd_hist(time,:,4);
+% 
+%         % compute control and kine for 1 step
+%         u = Drone_control(H,actual_pose,target,dt,vmax,0);
+%         new_pose = Drone_Kine(H,actual_pose,u,dt,offset_rdd,0);
+%         rdd_hist(time+1,:,4) = new_pose;
+% 
+%         % check if it's reached
+%         if norm(target - new_pose) <= threshold
+%             target_index(4) = target_index(4) + 1;
+%         end
+%         if target_index(4) == size(path4,1)+1
+%             conditions(4) = false;
+%         end
+% 
+%         dist = pdist2(new_pose(1:2),victims);
+%         mindist = min(dist);
+%         if mindist <= fov/2
+%             drone_victim(3) = 1;
+%             break;
+%         end
+%     end
+% 
+%     time = time + 1;
+%     if time >= 1000
+%         error('Error. Taking over 1000 time steps to complete the simulation');
+%     end
+% 
+% end
 
 %% test plot
 
@@ -613,7 +745,7 @@ colorbar;
 daspect([1 1 0.5]);
 view(3);
 
-plot3(victims(2,1),victims(2,2),H(victims(2,2),victims(2,1))+offset, 'p', 'MarkerSize', 20, 'MarkerFaceColor', 'y');
+plot3(victims(2,1),victims(2,2),H(victims(2,2),victims(2,1))+10, 'p', 'MarkerSize', 20, 'MarkerFaceColor', 'y');
 
 fullrows = rdd_hist(:,:,1);
 fullrows = fullrows(fullrows(:,3) ~= 0, :);
