@@ -21,7 +21,7 @@ z = initstate(3);
 theta = initstate(4);
 
 % check offset
-oldheigth = interp2(environ, initstate(2), initstate(1), 'linear');
+oldheigth = interp2(environ, initstate(1), initstate(2), 'linear');
 if z == oldheigth && modo == 1
    warning('Forget to add offset in previous state. Adding now \n');
    z = oldheigth + offset;
@@ -33,7 +33,7 @@ end
     z_new = z + u(3)*Dt;
     theta_new = theta + u(4)*Dt;
 
-if z_new < interp2(environ, y_new, x_new, 'linear')
+if z_new < interp2(environ, x_new, y_new, 'linear')
    warning('Drone has crashed in the terrain ');
 end
 
