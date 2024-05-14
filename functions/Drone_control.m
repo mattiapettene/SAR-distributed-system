@@ -47,15 +47,15 @@ vy = dy/Dt;
 vz = dz/Dt;
 
 if abs(vx) > vmaxx
-    warning('Velocity in x (%.2f) has overcome the max!',vx);
+    %warning('Velocity in x (%.2f) has overcome the max!',vx);
     vx = vmaxx*sign(vx);
 end
 if abs(vy) > vmaxy
-    warning('Velocity in y (%.2f) has overcome the max!',vy);
+    %warning('Velocity in y (%.2f) has overcome the max!',vy);
     vy = vmaxy*sign(vy);
 end
 if abs(vz) > vmaxz
-    warning('Velocity in z (%.2f) has overcome the max!',vz);
+    %warning('Velocity in z (%.2f) has overcome the max!',vz);
     vz = vmaxz*sign(vz);
 end
 

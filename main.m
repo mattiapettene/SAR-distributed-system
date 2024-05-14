@@ -388,6 +388,237 @@ radius = 60;
 goalbias = 1;
 bias = 0.4;
 bias_radius = 200;
-plot = 1;
+plot_ = 1;
 
-[rrt_tree, rrt_path] = rrt_star(map, start, goal, maxIterations, stepSize, radius, goalbias, bias, bias_radius, plot);
+[rrt_tree, rrt_path] = rrt_star(map, start, goal, maxIterations, stepSize, radius, goalbias, bias, bias_radius, plot_);
+
+
+%% Reload map
+
+map = load("torbiera_viote.txt");
+
+s = sqrt(length(map));
+H = zeros(s);
+
+for y_i = 1:s
+    for x_i = 1:s
+        idx = x_i + (y_i-1)*1000;
+        H(x_i,y_i) = map(idx, 3);
+    end
+end
+
+H = flipud(H);
+map = H;
+
+%% Sensors uncertainty
+
+% - Input
+mu_u = zeros(1,4);
+sigma_u = 0.2;
+Q = [sigma_u,       0,          0,        0;
+         0,       sigma_u,      0,        0;
+         0,         0,      sigma_u,      0;
+         0,         0,          0,     sigma_u];
+
+% - GPS
+mu_gps = zeros(1,4);
+sigma_gps = 0.1;
+R = [sigma_gps,       0,           0,         0;
+          0,       sigma_gps,      0,         0;
+          0,          0,      sigma_gps,      0;
+          0,          0,           0,     sigma_gps];
+
+
+%% Kalman Filter
+
+% Initialisation
+Dt = 1;
+offset = 10;
+init_state = [1,1, map(1,1)+offset, 0];
+vmax = [2,2,2];
+threshold = 0.8;
+uStore = [0,0,0,0];
+
+target_list = path2;
+
+% Set here the first position - origin of the trajectory
+pose_hist = [1,1,map(1,1)+offset,0];
+
+A = eye(4);
+B = eye(4)*Dt;
+P = 10^2;
+
+poseEstHist = [1,1,map(1,1)+offset,0];
+pose_gps_hist = [1,1,map(1,1)+offset,0] + randn(1,4)*R + mu_gps;
+
+for n = 1:size(target_list,1)
+
+destin = [target_list(n,:), map(target_list(n,2),target_list(n,1))+offset, 0];
+
+i = 1;
+while i 
+    pose_actual = pose_hist(end,:);
+    u = Drone_control(map,pose_actual,destin,Dt,vmax,offset);    
+    u_bar = u + randn(1,4)*Q + mu_u;                      
+
+    % Real pose
+    pose_new = Drone_Kine(map,pose_actual,u,Dt,offset); 
+    pose_gps = pose_new + randn(1,4)*R + mu_gps;
+    pose_gps_hist = [pose_gps_hist; pose_gps];
+    pose_hist = [pose_hist; pose_new];
+
+    % Prediction step
+    poseEstPred = A*pose_actual' + B*u_bar';
+    Ppred = A*P*A' + B*Q^2*B';
+
+    % Update step
+    H = eye(4);
+    InnCov = H*Ppred*H' + R^2;
+    W = Ppred*H'*inv(InnCov);
+    poseEst = (poseEstPred + W*(pose_gps'-H*poseEstPred))';
+    P = (eye(4) - W*H)*Ppred;
+    poseEstHist = [poseEstHist; poseEst];
+
+    i = i+1;
+
+    % check if it's reached
+    if norm(destin - pose_new) <= threshold
+        i = 0;
+    end
+end
+end
+
+% Plots
+
+figure('Name','x Filtered');
+hold on;
+plot(pose_gps_hist(:,1), '-b');
+plot(poseEstHist(:,1), '-g');
+plot(pose_hist(:,1), '-r');
+legend('xGPS', 'xEst', 'xTrue');
+
+figure('Name','y Filtered');
+hold on;
+plot(pose_gps_hist(:,2), '-b');
+plot(poseEstHist(:,2), '-g');
+plot(pose_hist(:,2), '-r');
+legend('yGPS', 'yEst', 'yTrue');
+
+figure('Name','z Filtered');
+hold on;
+plot(pose_gps_hist(:,3), '-b');
+plot(poseEstHist(:,3), '-g');
+plot(pose_hist(:,3), '-r');
+legend('zGPS', 'zEst', 'zTrue');
+
+figure('Name','theta Filtered');
+hold on;
+plot(pose_gps_hist(:,4), '-b');
+plot(poseEstHist(:,4), '-g');
+plot(pose_hist(:,4), '-r');
+legend('$\theta$ GPS', '$\theta$ Est', '$\theta$ True');
+
+% Errors distribution
+
+figure('Name','x Error');
+histogram(poseEstHist(:,1)-pose_hist(:,1));
+
+figure('Name','y Error');
+histogram(poseEstHist(:,2)-pose_hist(:,2));
+
+figure('Name','z Error');
+histogram(poseEstHist(:,3)-pose_hist(:,3));
+
+figure('Name','theta Error');
+histogram(poseEstHist(:,4)-pose_hist(:,4));
+
+
+%% TEST FUNZIONE KALMAN FILTER
+
+% Initialisation
+Dt = 1;
+offset = 10;
+init_state = [1,1, map(1,1)+offset, 0];
+vmax = [2,2,2];
+threshold = 0.8;
+uStore = [0,0,0,0];
+
+target_list = path2;
+
+% Set here the first position - origin of the trajectory
+pose_hist = [1,1,map(1,1)+offset,0];
+
+A = eye(4);
+B = eye(4)*Dt;
+P = 10^2;
+
+pose_est_hist = [1,1,map(1,1)+offset,0];
+pose_gps_hist = [1,1,map(1,1)+offset,0] + randn(1,4)*R + mu_gps;
+
+for n = 1:size(target_list,1)
+
+destin = [target_list(n,:), map(target_list(n,2),target_list(n,1))+offset, 0];
+
+i = 1;
+while i 
+    pose_actual = pose_hist(end,:);
+    u = Drone_control(map,pose_actual,destin,Dt,vmax,offset);                       
+
+    % Real pose
+    pose_new = Drone_Kine(map,pose_actual,u,Dt,offset); 
+    pose_hist = [pose_hist; pose_new];
+
+    [pose_gps_hist, pose_est_hist, P] = KalmanFilter(u, pose_new, pose_actual, Q, R, mu_gps, mu_u, A, B, P, pose_gps_hist, pose_est_hist);
+
+    i = i+1;
+
+    % check if it's reached
+    if norm(destin - pose_new) <= threshold
+        i = 0;
+    end
+end
+end
+
+%% Plots filtered path
+
+figure('Name','x Filtered');
+hold on;
+plot(pose_gps_hist(:,1), '-b');
+plot(pose_est_hist(:,1), '-g');
+plot(pose_hist(:,1), '-r');
+legend('xGPS', 'xEst', 'xTrue');
+
+figure('Name','y Filtered');
+hold on;
+plot(pose_gps_hist(:,2), '-b');
+plot(pose_est_hist(:,2), '-g');
+plot(pose_hist(:,2), '-r');
+legend('yGPS', 'yEst', 'yTrue');
+
+figure('Name','z Filtered');
+hold on;
+plot(pose_gps_hist(:,3), '-b');
+plot(pose_est_hist(:,3), '-g');
+plot(pose_hist(:,3), '-r');
+legend('zGPS', 'zEst', 'zTrue');
+
+figure('Name','theta Filtered');
+hold on;
+plot(pose_gps_hist(:,4), '-b');
+plot(pose_est_hist(:,4), '-g');
+plot(pose_hist(:,4), '-r');
+legend('$\theta$ GPS', '$\theta$ Est', '$\theta$ True');
+
+% Errors distribution
+
+figure('Name','x Error');
+histogram(pose_est_hist(:,1)-pose_hist(:,1));
+
+figure('Name','y Error');
+histogram(pose_est_hist(:,2)-pose_hist(:,2));
+
+figure('Name','z Error');
+histogram(pose_est_hist(:,3)-pose_hist(:,3));
+
+figure('Name','theta Error');
+histogram(pose_est_hist(:,4)-pose_hist(:,4));
