@@ -1,4 +1,4 @@
-function [tree, path] = rrt_star(map, start, goal, maxIterations, stepSize, radius, goalbias, bias, bias_radius, plt)
+function [tree, path] = rrt_star(map, start, goal, maxIterations, stepSize, radius, goalbias, bias, bias_radius, plt, slope)
 
 % map -> logic matrix where obstacles are set to 1
 % start -> starting point [x,y]
@@ -118,7 +118,8 @@ end
 function [cost, parent] = chooseBestParent(tree, extendedPoint, nearbyIndices)
     cost = [];
     for i=1:length(nearbyIndices)
-        cost = [cost; tree(i, 3) + vecnorm(tree(i,1:2)-extendedPoint(1:2), 2, 2)];
+        slp = 5*slope(tree(i,1), tree(i,2));
+        cost = [cost; tree(i, 3) + vecnorm(tree(i,1:2)-extendedPoint(1:2), 2, 2) + slp];
     end
     [~, index] = min(cost);
     parent = nearbyIndices(index);
@@ -128,8 +129,9 @@ end
 function rewire(tree, nearbyIndices, extendedPoint)
     for i=1:length(nearbyIndices)
         index = nearbyIndices(i);
+        slp = 5*slope(tree(index,1), tree(index,2));
         old_cost = tree(index, 3);
-        new_cost = extendedPoint(3) + vecnorm(tree(index,1:2)-extendedPoint(1:2), 2, 2);
+        new_cost = extendedPoint(3) + vecnorm(tree(index,1:2)-extendedPoint(1:2), 2, 2) + slp;
         if new_cost < old_cost
             tree(index, 3) = new_cost;
             tree(index, 4) = size(tree, 1);     % extendedPoint index

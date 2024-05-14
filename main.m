@@ -62,6 +62,7 @@ mapLength = s;
 
 [grady,gradx] = gradient(H);
 gradmod = sqrt(gradx.^2 + grady.^2);
+slope = rad2deg(atan(gradmod));
 
 figure('Name','Terrain slope');
 contour(1:1:mapWidth,1:1:mapLength,H)
@@ -390,7 +391,7 @@ bias = 0.4;
 bias_radius = 200;
 plot_ = 1;
 
-[rrt_tree, rrt_path] = rrt_star(map, start, goal, maxIterations, stepSize, radius, goalbias, bias, bias_radius, plot_);
+[rrt_tree, rrt_path] = rrt_star(map, start, goal, maxIterations, stepSize, radius, goalbias, bias, bias_radius, plot_, slope);
 
 
 %% Reload map
@@ -541,7 +542,7 @@ offset = 10;
 init_state = [1,1, map(1,1)+offset, 0];
 vmax = [2,2,2];
 threshold = 0.8;
-uStore = [0,0,0,0];
+uStore = [0,0,0,0]; 
 
 target_list = path2;
 
@@ -552,8 +553,11 @@ A = eye(4);
 B = eye(4)*Dt;
 P = 10^2;
 
-pose_est_hist = [1,1,map(1,1)+offset,0];
-pose_gps_hist = [1,1,map(1,1)+offset,0] + randn(1,4)*R + mu_gps;
+pose_est_hist = zeros(1, 4, 4);
+pose_est_hist(1,:,1) = [1,1,map(1,1)+offset,0];
+
+pose_gps_hist = zeros(1, 4, 4);
+pose_gps_hist(1,:,1) = [1,1,map(1,1)+offset,0] + randn(1,4)*R + mu_gps;
 
 for n = 1:size(target_list,1)
 
@@ -568,7 +572,7 @@ while i
     pose_new = Drone_Kine(map,pose_actual,u,Dt,offset); 
     pose_hist = [pose_hist; pose_new];
 
-    [pose_gps_hist, pose_est_hist, P] = KalmanFilter(u, pose_new, pose_actual, Q, R, mu_gps, mu_u, A, B, P, pose_gps_hist, pose_est_hist);
+    [pose_gps_hist, pose_est_hist, P] = KalmanFilter(1, u, pose_new, pose_actual, Q, R, mu_gps, mu_u, A, B, P, pose_gps_hist, pose_est_hist, occupancyGrid);
 
     i = i+1;
 
@@ -579,7 +583,7 @@ while i
 end
 end
 
-%% Plots filtered path
+% Plots filtered path
 
 figure('Name','x Filtered');
 hold on;
@@ -612,13 +616,13 @@ legend('$\theta$ GPS', '$\theta$ Est', '$\theta$ True');
 % Errors distribution
 
 figure('Name','x Error');
-histogram(pose_est_hist(:,1)-pose_hist(:,1));
+histogram(pose_est_hist(:,1,1)-pose_hist(:,1));
 
 figure('Name','y Error');
-histogram(pose_est_hist(:,2)-pose_hist(:,2));
+histogram(pose_est_hist(:,2,1)-pose_hist(:,2));
 
 figure('Name','z Error');
-histogram(pose_est_hist(:,3)-pose_hist(:,3));
+histogram(pose_est_hist(:,3, 1)-pose_hist(:,3));
 
 figure('Name','theta Error');
 histogram(pose_est_hist(:,4)-pose_hist(:,4));
