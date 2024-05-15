@@ -39,13 +39,12 @@ vmaxz = maxvel(3);
 
 dx = destination(1) - init_state(1);
 dy = destination(2) - init_state(2);
-dz = interp2(environment,destination(2),destination(2), 'linear') - init_state(3) + offset;
 dth= atan2(dy,dx) - init_state(4);
 
 vx = dx/Dt;
 vy = dy/Dt;
-vz = dz/Dt;
 omega = dth/Dt;
+
 
 if abs(vx) > vmaxx
     warning('Velocity in x (%.2f) has overcome the max!',vx);
@@ -54,7 +53,7 @@ end
 if abs(vy) > vmaxy
     warning('Velocity in y (%.2f) has overcome the max!',vy);
     vy = vmaxy*sign(vy);
-end
+endvz = dz/Dt;
 if abs(vz) > vmaxz
     warning('Velocity in z (%.2f) has overcome the max!',vz);
     vz = vmaxz*sign(vz);
