@@ -55,7 +55,9 @@ if abs(vy) > vmaxy
 end
 
 dz = interp2(environment,init_state(1)+vx*Dt,init_state(2)+vy*Dt, 'linear') - init_state(3) + offset;
-%dz = interp2(environment,destination(1),destination(2), 'linear') - init_state(3) + offset;
+if dz == 0
+    dz = destination(3) - init_state(3);
+end
 
 vz = dz/Dt;
 if abs(vz) > vmaxz

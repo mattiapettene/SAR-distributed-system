@@ -20,7 +20,7 @@ addpath('Plot/');
 %% Simulation parameters
 
 dt = 2;                 % Time step (s)
-fov = 40;               % Camera FoV (m)
+fov = 80;               % Camera FoV (m)
 sp_drone1 = [1,1];      % Starting point drone 1
 sp_drone2 = [1,10];     % Starting point drone 2
 sp_drone3 = [10,1];     % Starting point drone 3
@@ -311,7 +311,7 @@ while sum(conditions)
 
         dist = pdist2(new_pose(1:2),victims);
         mindist = min(dist);
-        if mindist <= fov/2
+        if mindist <= fov/2 + 1
             drone_victim(1) = 1;
             break;
         end
@@ -339,7 +339,7 @@ while sum(conditions)
 
         dist = pdist2(new_pose(1:2),victims);
         mindist = min(dist);
-        if mindist <= fov/2
+        if mindist <= fov/2 + 1
             drone_victim(2) = 1;
             break;
         end
@@ -366,7 +366,7 @@ while sum(conditions)
 
         dist = pdist2(new_pose(1:2),victims);
         mindist = min(dist);
-        if mindist <= fov/2
+        if mindist <= fov/2 + 1
             drone_victim(3) = 1;
             break;
         end
@@ -384,9 +384,9 @@ robot_depl = [200 1; 210 1; 220 1];
 robot_id = 1;
 
 for i = 1 : size(drone_victim,2)
-    if drone_victim(i) == 1
-        continue
-    end
+    % if drone_victim(i) == 1
+    %     continue
+    % end
 
     pose_hist = updateDronePosition(H,robot_depl(i,:),pose_hist,vmax,offset,dt,threshold,i);
 end
@@ -513,23 +513,20 @@ spy(occupancyGridComplete);
 %% MOVEMENTS
 clear path1d path2d path3d
 offset_rdd = 20;
-farward = 10;
-lateral = fov;
-
-
-formation = double(~drone_victim);
-formation(find(formation,1,'first')) = -1;
+offset_rob = 1;
+farward = fov/2;
+lateral = fov/4;
 
 path4 = rrt_path;
 theta = atan2((rrt_path(2,2)-rrt_path(1,2)),(rrt_path(2,1)-rrt_path(1,1)));
 
 % build formation
-path1d(:,1) = rrt_path(:, 1) + abs(formation(1))*cos(theta)*farward + formation(1)*cos(pi/2+theta)*lateral;
-path1d(:,2) = rrt_path(:, 2) + abs(formation(1))*sin(theta)*farward + formation(1)*sin(pi/2+theta)*lateral;
-path2d(:,1) = rrt_path(:, 1) + abs(formation(2))*cos(theta)*farward + formation(2)*cos(pi/2+theta)*lateral;
-path2d(:,2) = rrt_path(:, 2) + abs(formation(2))*sin(theta)*farward + formation(2)*sin(pi/2+theta)*lateral;
-path3d(:,1) = rrt_path(:, 1) + abs(formation(3))*cos(theta)*farward + formation(3)*cos(pi/2+theta)*lateral;
-path3d(:,2) = rrt_path(:, 2) + abs(formation(3))*sin(theta)*farward + formation(3)*sin(pi/2+theta)*lateral;
+path1d(:,1) = rrt_path(:, 1) + cos(pi/2+theta)*lateral;
+path1d(:,2) = rrt_path(:, 2) + sin(pi/2+theta)*lateral;
+path2d(:,1) = rrt_path(:, 1) + cos(theta)*farward;
+path2d(:,2) = rrt_path(:, 2) + sin(theta)*farward;
+path3d(:,1) = rrt_path(:, 1) + cos(-pi/2+theta)*lateral;
+path3d(:,2) = rrt_path(:, 2) + sin(-pi/2+theta)*lateral;
 
 % anti negative
 path1d(path1d < 1) = 1;
@@ -540,10 +537,10 @@ path2d(path2d > 1000) = 1000;
 path3d(path3d > 1000) = 1000;
 
 conditions = true(1,n+1);
-conditions(logical(drone_victim)) = false;
+%conditions(logical(drone_victim)) = false;
 target_index = ones(1,n+1);
 in_form = zeros(1,n);
-in_form = in_form + drone_victim;
+%in_form = in_form + drone_victim;
 rdd_hist = zeros(1,4,n+1); % position 4 is for the robot
 
 %initialize
@@ -553,7 +550,7 @@ rdd_hist(1,:,1) = pose_hist(col,:,1);
 rdd_hist(1,:,2) = pose_hist(col,:,2);
 [col, ~] = find(pose_hist(:, :, 3), 1, 'last');
 rdd_hist(1,:,3) = pose_hist(col,:,3);
-rdd_hist(1,:,4) = [robot_depl(2,:), H(robot_depl(2,2),robot_depl(2,1)),0];
+rdd_hist(1,:,4) = [robot_depl(2,:), H(robot_depl(2,2),robot_depl(2,1))+offset_rob,0];
 
 
 target1 = [path1d(target_index(1),:), interp2(H,path1d(target_index(1),1),path1d(target_index(1),2), 'linear')+offset_rdd, 0];
@@ -636,18 +633,21 @@ end
 
 %% debug 
 conditions = true(1,n+1);
-conditions(logical(drone_victim)) = false;
+%conditions(logical(drone_victim)) = false;
+
+deb_time=zeros(time,1);
 
 % formation moves followinf rrt
 while conditions(4)
     % robot 1 step
     % new formation
     % drone moves formation new
+    deb_time = [deb_time;time];
 
     % Robot 1 step
     if conditions(4)
         % Positions for each iteration
-        target = [path4(2,:), H(path4(2,2),path4(2,1)), 0];
+        target = [path4(2,:), H(path4(2,2),path4(2,1))+1, 0];
         actual_pose = rdd_hist(time,:,4);
 
         % compute control and kine for 1 step
@@ -673,12 +673,12 @@ while conditions(4)
 
     clear path1d path2d path3d
     % build formation
-    path1d(:,1) = rrt_path(:, 1) + abs(formation(1))*cos(theta)*farward + formation(1)*cos(pi/2+theta)*lateral;
-    path1d(:,2) = rrt_path(:, 2) + abs(formation(1))*sin(theta)*farward + formation(1)*sin(pi/2+theta)*lateral;
-    path2d(:,1) = rrt_path(:, 1) + abs(formation(2))*cos(theta)*farward + formation(2)*cos(pi/2+theta)*lateral;
-    path2d(:,2) = rrt_path(:, 2) + abs(formation(2))*sin(theta)*farward + formation(2)*sin(pi/2+theta)*lateral;
-    path3d(:,1) = rrt_path(:, 1) + abs(formation(3))*cos(theta)*farward + formation(3)*cos(pi/2+theta)*lateral;
-    path3d(:,2) = rrt_path(:, 2) + abs(formation(3))*sin(theta)*farward + formation(3)*sin(pi/2+theta)*lateral;
+    path1d(:,1) = rrt_path(:, 1) + cos(pi/2+theta)*lateral;
+    path1d(:,2) = rrt_path(:, 2) + sin(pi/2+theta)*lateral;
+    path2d(:,1) = rrt_path(:, 1) + cos(theta)*farward;
+    path2d(:,2) = rrt_path(:, 2) + sin(theta)*farward;
+    path3d(:,1) = rrt_path(:, 1) + cos(-pi/2+theta)*lateral;
+    path3d(:,2) = rrt_path(:, 2) + sin(-pi/2+theta)*lateral;
     
     % anti negative
     path1d(path1d < 1) = 1;
@@ -689,7 +689,7 @@ while conditions(4)
     path3d(path3d > 1000) = 1000;
     
     in_form = zeros(1,n);
-    in_form = in_form + drone_victim;
+    %in_form = in_form + drone_victim;
 
     while sum(in_form) < 3
         % Drone 1
@@ -701,14 +701,14 @@ while conditions(4)
             % compute control and kine for 1 step
             u = Drone_control(H,actual_pose,target,dt,vmax,offset_rdd);
             new_pose = Drone_Kine(H,actual_pose,u,dt,offset_rdd,0);
-            rdd_hist(time+1,:,2) = new_pose;
+            rdd_hist(time+1,:,1) = new_pose;
     
             occupancyLocal1 = zeros(size(occupancyGridComplete));
-            camview = [round(new_pose(1))-fov/2 round(new_pose(1))+fov/2; round(new_pose(2))-fov/2 round(new_pose(2))+fov/2];
+            camview = [round(new_pose(1))-fov/4 round(new_pose(1))+fov/4; round(new_pose(2)) round(new_pose(2))+fov/2];
             camview(camview < 1) = 1;
             camview(camview > 1000) = 1000;
             occupancyLocal1(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2)) = occupancyGridComplete(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2));
-            occupancyGrid = occupancyLocal1 | occupancyGrid;
+            
     
             % check if it's reached
             if norm(target(1:3) - new_pose(1:3)) <= threshold
@@ -728,11 +728,11 @@ while conditions(4)
             rdd_hist(time+1,:,2) = new_pose;
     
             occupancyLocal2 = zeros(size(occupancyGridComplete));
-            camview = [round(new_pose(1))-fov/2 round(new_pose(1))+fov/2; round(new_pose(2))-fov/2 round(new_pose(2))+fov/2];
+            camview = [round(new_pose(1))-fov/4 round(new_pose(1))+fov/4; round(new_pose(2)) round(new_pose(2))+fov/2];
             camview(camview < 1) = 1;
             camview(camview > 1000) = 1000;
             occupancyLocal2(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2)) = occupancyGridComplete(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2));
-            occupancyGrid = occupancyLocal2 | occupancyGrid;
+            
 
             % check if it's reached
             if norm(target(1:3) - new_pose(1:3)) <= threshold
@@ -752,11 +752,11 @@ while conditions(4)
             rdd_hist(time+1,:,3) = new_pose;
     
             occupancyLocal3 = zeros(size(occupancyGridComplete));
-            camview = [round(new_pose(1))-fov/2 round(new_pose(1))+fov/2; round(new_pose(2))-fov/2 round(new_pose(2))+fov/2];
+            camview = [round(new_pose(1))-fov/4 round(new_pose(1))+fov/4; round(new_pose(2)) round(new_pose(2))+fov/2];
             camview(camview < 1) = 1;
             camview(camview > 1000) = 1000;
             occupancyLocal3(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2)) = occupancyGridComplete(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2));
-            occupancyGrid = occupancyLocal3 | occupancyGrid;
+            
 
             % check if it's reached
             if norm(target(1:3) - new_pose(1:3)) <= threshold
@@ -768,6 +768,8 @@ while conditions(4)
         if rdd_hist(time+1,3,4) == 0
             rdd_hist(time+1,:,4) = rdd_hist(time,:,4);
         end
+
+        cam = occupancyLocal1 | occupancyLocal2 | occupancyLocal3;
     
         time = time + 1;
         if time >= 1000
@@ -778,8 +780,7 @@ while conditions(4)
 
 end
 
-%% test plot
-
+%% Plot rescue path
 figure('Name','Test formation')
 hold on
 
@@ -814,3 +815,76 @@ xlabel('X');
 ylabel('Y');
 zlabel('Z');
 hold off
+
+%% test plot
+
+deb_time_reduced = deb_time(1:3:end);
+
+figure('Name','Test formation')
+hold on
+
+mesh(H);
+colormap('summer');
+contour3(H, 80, 'k', 'LineWidth', 1);
+colorbar;
+daspect([1 1 0.5]);
+view(3);
+
+plot3(victims(2,1),victims(2,2),H(victims(2,2),victims(2,1))+10, 'p', 'MarkerSize', 20, 'MarkerFaceColor', 'y');
+
+for i = 1:size(deb_time_reduced,1)
+    if deb_time_reduced(i) == 0
+        continue
+    else
+    fullrows1 = rdd_hist(deb_time_reduced(i), :, 1);
+    fullrows1 = fullrows1(fullrows1(:, 3) ~= 0, :);
+    
+    fullrows2 = rdd_hist(deb_time_reduced(i), :, 2);
+    fullrows2 = fullrows2(fullrows2(:, 3) ~= 0, :);
+    
+    fullrows3 = rdd_hist(deb_time_reduced(i), :, 3);
+    fullrows3 = fullrows3(fullrows3(:, 3) ~= 0, :);
+    
+    % Plot dei punti
+    plot3(fullrows1(:, 1), fullrows1(:, 2), fullrows1(:, 3), '-or', 'LineWidth', 2, 'MarkerSize', 2);
+    plot3(fullrows2(:, 1), fullrows2(:, 2), fullrows2(:, 3), '-oc', 'LineWidth', 2, 'MarkerSize', 2);
+    plot3(fullrows3(:, 1), fullrows3(:, 2), fullrows3(:, 3), '-om', 'LineWidth', 2, 'MarkerSize', 2);
+    
+    % Numero di punti
+    numPoints = size(fullrows1, 1);
+    
+    for j = 1:numPoints
+        % Coordinate dei punti
+        x1 = fullrows1(j, 1);
+        y1 = fullrows1(j, 2);
+        z1 = fullrows1(j, 3);
+        
+        x2 = fullrows2(j, 1);
+        y2 = fullrows2(j, 2);
+        z2 = fullrows2(j, 3);
+        
+        x3 = fullrows3(j, 1);
+        y3 = fullrows3(j, 2);
+        z3 = fullrows3(j, 3);
+        
+        plot3([x1, x3], [y1, y3], [z1, z3], '-k', 'LineWidth', 1.5);
+        
+        xm = (x1 + x3) / 2;
+        ym = (y1 + y3) / 2;
+        zm = (z1 + z3) / 2;
+        plot3([xm, x2], [ym, y2], [zm, z2], '-c', 'LineWidth', 1.5);
+    end
+        
+        fullrows = rdd_hist(deb_time_reduced(i),:,4);
+        fullrows = fullrows(fullrows(:,3) ~= 0, :);
+        plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-ob', 'LineWidth', 2, 'MarkerSize', 2);
+    end
+end
+grid on;
+view(3);
+xlabel('X');
+ylabel('Y');
+zlabel('Z');
+hold off
+
+

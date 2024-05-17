@@ -69,8 +69,8 @@ end
 goal_indices = find(tree(:, 1)==goal(1) & tree(:, 2)==goal(2));
 
 if isempty(goal_indices)
-    fprintf('\nUnable to find a path with this number of iterations!\n');
     path = [];
+    error('Unable to find a path with this number of iterations!');
 else
     path = goal;
     min_path = min(tree(goal_indices, 3));
