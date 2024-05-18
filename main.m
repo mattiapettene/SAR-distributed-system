@@ -369,7 +369,7 @@ goal = [randi(1000), randi(1000)];
 
 test_path = [start; goal];
 
-isObstacle(occupancyGrid, start, goal)
+isObstacle(occupancyGrid, start, goal);
 
 plot(test_path(:,1), test_path(:,2), '-or', LineWidth=2, MarkerSize=3);
 
@@ -533,8 +533,16 @@ histogram(poseEstHist(:,3)-pose_hist(:,3));
 figure('Name','theta Error');
 histogram(poseEstHist(:,4)-pose_hist(:,4));
 
+% Interessante per il report -> se alziamo sigma_gps, si nota l'efficienza
+% del KF: errore tra true e GPS è molto più grande di quello tra true ed
+% estimated. Si può mettere un confronto per dimostrare che KF funziona.
+figure('Name','x Error');
+histogram(poseEstHist(:,1)-pose_hist(:,1));
+figure('Name','x GPS Error');
+histogram(pose_gps_hist(:,1)-pose_hist(:,1));
 
-%% TEST FUNZIONE KALMAN FILTER
+
+%% Kalman Filter (test function)
 
 % Initialisation
 Dt = 1;
@@ -626,3 +634,24 @@ histogram(pose_est_hist(:,3, 1)-pose_hist(:,3));
 
 figure('Name','theta Error');
 histogram(pose_est_hist(:,4)-pose_hist(:,4));
+
+%% Distributed WLS
+
+% Cam matrix simulation
+cam = zeros(fov/2,fov/2);
+for i = 1:size(cam,1)
+    for j = 1:size(cam,2)
+       if randi([0 2*size(cam,1)]) < 0.5*size(cam,1)
+           cam(i,j) = 1;
+       end
+    end
+end
+
+% ------------------------------------------------------------------
+
+n = 3; 
+sigma_cam = 0.1;
+m = 5;
+plt = 1;
+
+H_detected = WLS_distributed(cam, n, sigma_cam, m, plt);
