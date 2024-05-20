@@ -1,4 +1,4 @@
-function pose_hist = updateDronePosition(H, path, pose_hist, vmax, offset, Dt, threshold,id)
+function [pose_hist, pose_gps_hist, pose_est_hist, P] = updateDronePosition(H, path, pose_hist, vmax, offset, Dt, threshold, id, Q, R, mu_gps, mu_u, A, B, P, pose_gps_hist, pose_est_hist, occupancyGrid)
 % Cumpute the trajectory given a list of target positions considering
 % limitations.
 % INPUTS:
@@ -29,6 +29,9 @@ for n = 1:size(path,1)
         % update the list of pose
         pose_new = Drone_Kine(H,pose_actual,u,Dt,offset,0);
         pose_hist(pose_hist_index+1,:,id) = pose_new;
+
+        % Kalman Filter
+        [pose_gps_hist, pose_est_hist, P] = KalmanFilter(id, pose_hist_index, u, pose_new, pose_actual, Q, R, mu_gps, mu_u, A, B, P, pose_gps_hist, pose_est_hist, occupancyGrid);
         
         pose_hist_index = pose_hist_index + 1;
               

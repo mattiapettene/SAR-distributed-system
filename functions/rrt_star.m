@@ -1,4 +1,4 @@
-function [tree, path] = rrt_star(map, start, goal, maxIterations, stepSize, radius, goalbias, bias, bias_radius, plt)
+function [tree, path] = rrt_star(map, start, goal, maxIterations, stepSize, radius, goalbias, bias, bias_radius, plt, slope)
 
 % map -> logic matrix where obstacles are set to 1
 % start -> starting point [x,y]
@@ -69,8 +69,8 @@ end
 goal_indices = find(tree(:, 1)==goal(1) & tree(:, 2)==goal(2));
 
 if isempty(goal_indices)
-    fprintf('\nUnable to find a path with this number of iterations!\n');
     path = [];
+    error('Unable to find a path with this number of iterations!');
 else
     path = goal;
     min_path = min(tree(goal_indices, 3));
@@ -118,7 +118,8 @@ end
 function [cost, parent] = chooseBestParent(tree, extendedPoint, nearbyIndices)
     cost = [];
     for i=1:length(nearbyIndices)
-        cost = [cost; tree(i, 3) + vecnorm(tree(i,1:2)-extendedPoint(1:2), 2, 2)];
+        slp = 5*slope(tree(i,1), tree(i,2));
+        cost = [cost; tree(i, 3) + vecnorm(tree(i,1:2)-extendedPoint(1:2), 2, 2) + slp];
     end
     [~, index] = min(cost);
     parent = nearbyIndices(index);
@@ -128,8 +129,9 @@ end
 function rewire(tree, nearbyIndices, extendedPoint)
     for i=1:length(nearbyIndices)
         index = nearbyIndices(i);
+        slp = 5*slope(tree(index,1), tree(index,2));
         old_cost = tree(index, 3);
-        new_cost = extendedPoint(3) + vecnorm(tree(index,1:2)-extendedPoint(1:2), 2, 2);
+        new_cost = extendedPoint(3) + vecnorm(tree(index,1:2)-extendedPoint(1:2), 2, 2) + slp;
         if new_cost < old_cost
             tree(index, 3) = new_cost;
             tree(index, 4) = size(tree, 1);     % extendedPoint index
@@ -160,11 +162,13 @@ function random_point = goalBias(map, goal, bias, bias_radius)
     end
 end
 
-    function is_inside = isInside(point, map)
-    % Verifica se il punto è all'interno della matrice
-    is_inside = point(1) >= 1 && point(1) <= size(map, 1) && point(2) >= 1 && point(2) <= size(map, 2);
-    end
+function is_inside = isInside(point, map)
+% Verifica se il punto è all'interno della matrice
+is_inside = point(1) >= 1 && point(1) <= size(map, 1) && point(2) >= 1 && point(2) <= size(map, 2);
+end
 
+tree = [tree(:, 2), tree(:, 1), tree(:,3),tree(:,4)];
+path = [path(:, 2), path(:, 1)];
 
 % ---------------------------- PLOT ---------------------------------
 if plt
@@ -175,13 +179,19 @@ if plt
     axis equal;
     
     for i=2:length(tree)
-        plot([tree(i, 1), tree(tree(i, 4), 1)], [tree(i, 2), tree(tree(i, 4), 2)], 'b')
-        plot(tree(i, 1) ,tree(i, 2), '.b', 'MarkerSize', 10);
+        plot([tree(i, 2), tree(tree(i, 4), 2)], [tree(i, 1), tree(tree(i, 4), 1)], 'b')
+        plot(tree(i, 2) ,tree(i, 1), '.b', 'MarkerSize', 10);
     end
     if ~isempty(path)
-        plot(path(:, 1), path(:, 2), '-r', 'LineWidth', 3)
+        plot(path(:, 2), path(:, 1), '-r', 'LineWidth', 3)
     end
     plot(start(1), start(2), 'go', 'MarkerSize', 10, 'LineWidth', 2, 'MarkerFaceColor','g');
     plot(goal(1), goal(2), 'ro', 'MarkerSize', 10, 'LineWidth', 2, 'MarkerFaceColor','r');
+
+    set(gca, 'YDir', 'normal');
+
 end
+
+tree = [tree(:, 2), tree(:, 1), tree(:,3),tree(:,4)];
+path = [path(:, 2), path(:, 1)];
 end
