@@ -302,7 +302,7 @@ while sum(conditions)
         pose_hist(time+1,:,1) = new_pose;
 
         % check if it's reached
-        if norm(target - new_pose) <= threshold
+        if norm(target(1:3) - new_pose(1:3)) <= threshold
             target_index(1) = target_index(1) + 1;
         end
         if target_index(1) == size(path1,1)+1
@@ -330,7 +330,7 @@ while sum(conditions)
         pose_hist(time+1,:,2) = new_pose;
 
         % check if it's reached
-        if norm(target - new_pose) <= threshold
+        if norm(target(1:3) - new_pose(1:3)) <= threshold
             target_index(2) = target_index(2) + 1;
         end
         if target_index(2) == size(path2,1)+1
@@ -357,7 +357,7 @@ while sum(conditions)
         pose_hist(time+1,:,3) = new_pose;
 
         % check if it's reached
-        if norm(target - new_pose) <= threshold
+        if norm(target(1:3) - new_pose(1:3)) <= threshold
             target_index(3) = target_index(3) + 1;
         end
         if target_index(3) == size(path3,1)+1
@@ -389,7 +389,29 @@ for i = 1 : size(drone_victim,2)
     % end
 
     pose_hist = updateDronePosition(H,robot_depl(i,:),pose_hist,vmax,offset,dt,threshold,i);
+
 end
+
+ind = find(pose_hist(:,1,1)==0, 1);
+if( ~isempty(ind) )
+    for i = ind:size(pose_hist(:,:,1),1)
+        pose_hist(i,:,1) = pose_hist(ind-1,:,1);
+    end
+end
+ind = find(pose_hist(:,1,2)==0, 1);
+if( ~isempty(ind) )
+    for i = ind:size(pose_hist(:,:,2),1)
+        pose_hist(i,:,2) = pose_hist(ind-1,:,2);
+    end
+end
+ind = find(pose_hist(:,1,3)==0, 1);
+if( ~isempty(ind) )
+    for i = ind:size(pose_hist(:,:,3),1)
+        pose_hist(i,:,3) = pose_hist(ind-1,:,3);
+    end
+end
+
+
 
 %% Plot untill search and radevouz
 

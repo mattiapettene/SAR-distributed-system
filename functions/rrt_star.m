@@ -188,6 +188,7 @@ if plt
     plot(start(2), start(1), 'go', 'MarkerSize', 10, 'LineWidth', 2, 'MarkerFaceColor','g');
     plot(goal(2), goal(1), 'ro', 'MarkerSize', 10, 'LineWidth', 2, 'MarkerFaceColor','r');
 
+    set(gca,"YDir","normal");
 
 end
 
