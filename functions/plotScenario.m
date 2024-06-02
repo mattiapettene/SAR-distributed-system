@@ -8,7 +8,7 @@ daspect([1 1 0.5]);
 view(3);
 
 for i = 1:(nObstaclesrand+nForestTree)
-   
+
     xTrunk = xyzObstacles{i, 1}(:, 1);
     yTrunk = xyzObstacles{i, 1}(:, 2);
     zTrunk = xyzObstacles{i, 1}(:, 3);
@@ -17,8 +17,9 @@ for i = 1:(nObstaclesrand+nForestTree)
     yCrown = xyzObstacles{i, 2}(:, 2);
     zCrown = xyzObstacles{i, 2}(:, 3);
     
-    plot3(xTrunk, yTrunk, zTrunk, 'Color', '#53350A', 'LineWidth', 1);
-    plot3(xCrown, yCrown, zCrown, 'Color', '#2A7E19', 'LineWidth', 1);
+    plot3(yTrunk, xTrunk, zTrunk, 'Color', '#53350A', 'LineWidth', 1);
+    plot3(yCrown, xCrown, zCrown, 'Color', '#2A7E19', 'LineWidth', 1);
+
 end
 
 grid on;

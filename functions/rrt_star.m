@@ -23,7 +23,9 @@ PARENT_INDEX = 4;
 tree = [start, 0, NaN];      % Tree initialization
 
 % ------------------------------ALGORITHM --------------------------------
-
+iter = 1;
+while iter < maxIterations
+    fprintf('%d\n', maxIterations);
 for iter=1:maxIterations
 
     % Random point generation
@@ -69,8 +71,13 @@ end
 goal_indices = find(tree(:, 1)==goal(1) & tree(:, 2)==goal(2));
 
 if isempty(goal_indices)
-    path = [];
-    error('Unable to find a path with this number of iterations!');
+    if maxIterations <= 8000
+        maxIterations = maxIterations+500;
+        fprintf('Increasing number of iterations...\n');
+    else
+        path = [];
+        error('Unable to find a path with this number of iterations! Please increase the number of iterations or try again!');
+    end
 else
     path = goal;
     min_path = min(tree(goal_indices, 3));
@@ -84,6 +91,7 @@ else
     path = unique(path, "rows", "stable");
 end
 
+end
 
 % -------------------------- FUNCTIONS -------------------------------
 

@@ -3,7 +3,7 @@ function H_detected = WLS_distributed(cam, n, sigma_cam, m, plt)
 % cam = logic matrix with true obstacles detected
 % n = number of sensors (cameras)
 % sigma_cam = camera standard deviation
-% m = 
+% m = number of messages exchanged
 % plt = plot yes/no
 
 [x,y] = find(cam);
@@ -96,10 +96,12 @@ end
 
 % Fill obstacle matrix with obstacle detected
 H_detected = zeros(1000, 1000);
-for i=1:length(pEst_MD)
-    x = round(pEst_MD(1,i));
-    y = round(pEst_MD(2,i));
-    H_detected(x,y) = 1;
+if(size(pEst_MD,2)>=1)
+    for i=1:size(pEst_MD,2)
+        x = round(pEst_MD(1,i));
+        y = round(pEst_MD(2,i));
+        H_detected(x,y) = 1;
+    end
 end
 
 

@@ -1,16 +1,6 @@
 %% Intelligent distributed system project
 % Pettene Mattia - Poggesi Gabriele
 
-% ------------------------ TABLE OF CONTENTS------------------------------
-% Initialization
-% Map creation
-% Obstacle addition
-% Voronoi tessellation
-% Testing movent Voronoi (no velocity limits) - to be removed later
-% Coverage path planning
-% Test simulation - research and randezvous
-% RRT* path planning
-
 %% Initialization
 
 clc;
@@ -29,22 +19,22 @@ addpath('Plot/');
 
 %% Simulation parameters
 
-dt = 2;                 % Time step (s)
-fov = 40;               % Camera FoV (m)
-sp_drone1 = [1,1];      % Starting point drone 1
-sp_drone2 = [1,10];     % Starting point drone 2
-sp_drone3 = [10,1];     % Starting point drone 3
-kp = 1/dt;              % Voronoi kp parameter
-threshold = 0.8;        % Set target accuracy [m]
-vmax = [10,10,10];      % Drone maximum velocities (vx, vy, vz) [m/s]
-offset = 120;           % Distance from ground
+dt = 0.5;                       % Time step (s)
+sp_drone1 = [1,1];              % Starting point drone 1
+sp_drone2 = [1,10];             % Starting point drone 2
+sp_drone3 = [10,1];             % Starting point drone 3
+kp = 1/dt;                      % Voronoi kp parameter
+threshold = 0.8;                % Set target accuracy [m]
+vmax = [10,10,10];              % Drone maximum velocities (vx, vy, vz) [m/s]
+offset = 100;                   % Distance from ground
+fov = round(offset*tand(30));   % Camera FoV (m)
 
 % RRT* parameters
-maxIterations = 800;
-stepSize = 20;
-radius = 60;
+maxIterations = 2000;
+stepSize = 15;
+radius = 25;
 goalbias = 1;
-bias = 0.4;
+bias = 0.1;
 bias_radius = 200;
 plt = 1;
 
@@ -91,13 +81,13 @@ for y_i = 1:s
     end
 end
 
-H = flipud(H);
+H_flip = flipud(H);
 
 figure('Name','3D map')
 hold on;
-mesh(H);
+mesh(H_flip);
 colormap('summer');
-contour3(H, 80, 'k', 'LineWidth', 1);
+contour3(H_flip, 80, 'k', 'LineWidth', 1);
 colorbar;
 daspect([1 1 0.5]);
 view(3);
@@ -117,6 +107,8 @@ contour(1:1:mapWidth,1:1:mapLength,H)
 hold on
 quiver(1:1:mapWidth,1:1:mapLength,gradx,grady)
 axis equal
+ax = gca;
+ax.YDir = 'reverse';
 hold off
 saveas(gcf, 'Plot/terrain_slope.eps', 'epsc')
 
@@ -153,7 +145,7 @@ n = 0;
 while n <= nObstaclesrand
     x_idx = randi([1 mapWidth],1);
     y_idx = randi([1 mapLength],1);
-    z_val = H(y_idx, x_idx);
+    z_val = H(x_idx, y_idx);
     % fill occupancy map
     ind = sub2ind(size(BW),x_idx,y_idx);
     occupancyGrid(ind) = true;
@@ -176,7 +168,7 @@ n = 1;
 while n <= nForestTree
     x_idx = treespos(n,1);
     y_idx = treespos(n,2);
-    z_val = H(y_idx, x_idx);
+    z_val = H(x_idx, y_idx);
     [xT, yT, zT, xC, yC, zC] = tree(x_idx, y_idx, z_val);
     xyzObstacles{nObstaclesrand+n+1,1} = [xT(:), yT(:), zT(:)];
     xyzObstacles{nObstaclesrand+n+1,2} = [xC(:), yC(:), zC(:)];
@@ -192,8 +184,8 @@ for i = 1:mapLength
         % find the positive ones
         if occupancyGrid(i, j) == 1
             % change value around
-            for k = max(1, i-2):min(mapWidth, i+2)
-                for m = max(1, j-2):min(mapLength, j+2)
+            for k = max(1, i-toleranceLevel):min(mapWidth, i+toleranceLevel)
+                for m = max(1, j-toleranceLevel):min(mapLength, j+toleranceLevel)
                     new_grid(k, m) = 1;
                 end
             end
@@ -229,13 +221,16 @@ for i = 1:(nObstaclesrand+nForestTree)
     yCrown = xyzObstacles{i, 2}(:, 2);
     zCrown = xyzObstacles{i, 2}(:, 3);
     
-    plot3(xTrunk, yTrunk, zTrunk, 'Color', '#53350A', 'LineWidth', 1);
-    plot3(xCrown, yCrown, zCrown, 'Color', '#2A7E19', 'LineWidth', 1);
+    plot3(yTrunk, xTrunk, zTrunk, 'Color', '#53350A', 'LineWidth', 1);
+    plot3(yCrown, xCrown, zCrown, 'Color', '#2A7E19', 'LineWidth', 1);
+
 end
 
 grid on;
 axis equal;
 view(3);
+ax = gca;
+ax.YDir = 'reverse';
 hold off;
 saveas(gcf, 'Plot/3D_map_trees.eps', 'epsc')
 
@@ -243,7 +238,7 @@ figure('Name','Real trees location')
 hold on
 spy(double(BW))
 axis equal
-hImg = imshow(I); 
+hImg = imshow(I, 'InitialMagnification', 'fit'); 
 set(hImg, 'AlphaData', 0.6);
 spy(BW);
 hold off
@@ -283,7 +278,7 @@ fprintf('Computing areas exploration path finished!\n');
 
 %% Searching for victim
 
-victims = [1000 1000; randi(1000) randi(1000)];
+victims = [980 980; randi([20,980]) randi([20,980])];
 n = 3; % numero droni
 drone_victim = zeros(1,n);
 warning('off', 'all');
@@ -400,8 +395,8 @@ while sum(conditions)
     end
     
     time = time + 1;
-    if time >= 1000
-        error('Error. Taking over 1000 time steps to complete the simulation');
+    if time >= 10000
+        error('Error. Taking over 10000 time steps to complete the simulation');
     end
 
 end
@@ -439,8 +434,8 @@ if( ~isempty(ind) )
     end
 end
 
-% Plots 
-figure('Name','Test rendezvous')
+%% Plots 
+figure('Name','Research and Randezvous')
 hold on
 plotScenario(H, xyzObstacles, nForestTree, nObstaclesrand);
 
@@ -457,58 +452,16 @@ plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-oc', 'LineWidth', 2, 'Marker
 fullrows = pose_hist(:,:,3);
 fullrows = fullrows(fullrows(:,3) ~= 0, :);
 plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-om', 'LineWidth', 2, 'MarkerSize', 2);
-
 grid on;
 view(3);
+ax = gca;
+ax.YDir = 'reverse';
 xlabel('X');
 ylabel('Y');
 zlabel('Z');
 hold off
 
-%% TEST KALMAN - DA TOGLIERE
-% Plots filtered path
-
-figure('Name','x Filtered');
-hold on;
-plot(pose_gps_hist(:,1), '-b');
-plot(pose_est_hist(:,1), '-g');
-plot(pose_hist(:,1), '-r');
-legend('xGPS', 'xEst', 'xTrue');
-
-figure('Name','y Filtered');
-hold on;
-plot(pose_gps_hist(:,2), '-b');
-plot(pose_est_hist(:,2), '-g');
-plot(pose_hist(:,2), '-r');
-legend('yGPS', 'yEst', 'yTrue');
-
-figure('Name','z Filtered');
-hold on;
-plot(pose_gps_hist(:,3), '-b');
-plot(pose_est_hist(:,3), '-g');
-plot(pose_hist(:,3), '-r');
-legend('zGPS', 'zEst', 'zTrue');
-
-figure('Name','theta Filtered');
-hold on;
-plot(pose_gps_hist(:,4,2), '-b');
-plot(pose_est_hist(:,4,2), '-g');
-plot(pose_hist(:,4,2), '-r');
-legend('$\theta$ GPS', '$\theta$ Est', '$\theta$ True');
-
-% Errors distribution
-
-figure('Name','x Error');
-histogram(pose_est_hist(:,1,1)-pose_hist(:,1,1));
-
-figure('Name','y Error');
-histogram(pose_est_hist(:,2,1)-pose_hist(:,2,1));
-
-figure('Name','z Error');
-histogram(pose_est_hist(:,3, 1)-pose_hist(:,3,1));
-
-figure('Name','theta Error');
-histogram(pose_est_hist(:,4,2)-pose_hist(:,4,2));
+saveas(gcf, 'Plot/Research_and_Randezvous_path.eps', 'epsc');
 
 %% RRT* path planning
 
@@ -521,7 +474,7 @@ goal = victims(2,:);
 
 %% New random obstacle addition
 
-new_obstacle_number = 1000; 
+new_obstacle_number = 300; 
 new_occupancy = false(size(occupancyGrid));
 
 rand_pos = randperm(numel(occupancyGrid), new_obstacle_number);
@@ -557,10 +510,12 @@ spy(occupancyGridComplete);
 
 % Moving into formation 
 clear path1d path2d path3d
-offset_rdd = 20;
+offset_rdd = offset;
 offset_rob = 1;
 farward = fov/2;
 lateral = fov/4;
+
+cam_plot = zeros(1000, 1000);
 
 path4 = rrt_path;
 theta = atan2((rrt_path(2,2)-rrt_path(1,2)),(rrt_path(2,1)-rrt_path(1,1)));
@@ -587,12 +542,12 @@ in_form = zeros(1,n);
 rdd_hist = zeros(1,4,n+1); % position 4 is for the robot
 
 %initialize (drones)
-[col, ~] = find(pose_hist(:, :, 1), 1, 'last');
-rdd_hist(1,:,1) = pose_hist(col,:,1);
-[col, ~] = find(pose_hist(:, :, 2), 1, 'last');
-rdd_hist(1,:,2) = pose_hist(col,:,2);
-[col, ~] = find(pose_hist(:, :, 3), 1, 'last');
-rdd_hist(1,:,3) = pose_hist(col,:,3);
+%[col, ~] = find(pose_hist(:, :, 1), 1, 'last');
+rdd_hist(1,:,1) = pose_hist(end,:,1);
+%[col, ~] = find(pose_hist(:, :, 2), 1, 'last');
+rdd_hist(1,:,2) = pose_hist(end,:,2);
+%[col, ~] = find(pose_hist(:, :, 3), 1, 'last');
+rdd_hist(1,:,3) = pose_hist(end,:,3);
 rdd_hist(1,:,4) = [robot_depl(2,:), H(robot_depl(2,2),robot_depl(2,1))+offset_rob,0];
 
 % Kalman Filter initialization (drones)
@@ -600,10 +555,12 @@ rdd_est_hist = zeros(1, 4, 4);
 rdd_est_hist(1,:,1) = pose_est_hist(end,:,1);
 rdd_est_hist(1,:,2) = pose_est_hist(end,:,2);
 rdd_est_hist(1,:,3) = pose_est_hist(end,:,3);
+rdd_est_hist(1,:,4) = rdd_hist(1,:,4);
 rdd_gps_hist = zeros(1, 4, 4);
 rdd_gps_hist(1,:,1) = pose_gps_hist(end,:,1);
 rdd_gps_hist(1,:,2) = pose_gps_hist(end,:,2);
 rdd_gps_hist(1,:,3) = pose_gps_hist(end,:,3);
+rdd_gps_hist(1,:,4) = rdd_hist(1,:,4);
 
 target1 = [path1d(target_index(1),:), interp2(H,path1d(target_index(1),1),path1d(target_index(1),2), 'linear')+offset_rdd, 0];
 target2 = [path2d(target_index(2),:), interp2(H,path2d(target_index(2),1),path2d(target_index(2),2), 'linear')+offset_rdd, 0];
@@ -681,13 +638,24 @@ while sum(in_form) < 3
     % robot
     if sum(in_form) <= 3
         rdd_hist(time+1,:,4) = rdd_hist(time,:,4);
+        rdd_gps_hist(time+1,:,4) = rdd_gps_hist(time,:,4);
+        rdd_est_hist(time+1,:,4) = rdd_est_hist(time,:,4);
     end
 
     time = time + 1;
-    if time >= 1000
-        error('Error. Taking over 1000 time steps to complete the simulation');
+    if time >= 100000
+        error('Error. Taking over 10000 time steps to complete the simulation');
     end
 
+end
+
+ind = find(rdd_hist(:,1,1)==0, 1);
+if( ~isempty(ind) )
+    for i = ind:size(rdd_hist(:,:,1),1)
+        rdd_hist(i,:,1) = rdd_hist(ind-1,:,1);
+        rdd_est_hist(i,:,1) = rdd_est_hist(ind-1,:,1);
+        rdd_gps_hist(i,:,1) = rdd_gps_hist(ind-1,:,1);
+    end
 end
 
 ind = find(rdd_hist(:,1,1)==0, 1);
@@ -715,6 +683,28 @@ if( ~isempty(ind) )
     end
 end
 
+for j = 1:4
+ind = find(rdd_hist(:,1,j)==0, 1);
+if( ~isempty(ind) )
+    for i = ind:size(rdd_hist(:,:,j),1)
+        rdd_hist(i,:,1) = rdd_hist(ind-1,:,j);
+    end
+end
+ind = find(rdd_est_hist(:,1,j)==0, 1);
+if( ~isempty(ind) )
+    for i = ind:size(rdd_est_hist(:,:,j),1)
+        rdd_est_hist(i,:,1) = rdd_est_hist(ind-1,:,j);
+    end
+end
+ind = find(rdd_gps_hist(:,1,j)==0, 1);
+if( ~isempty(ind) )
+    for i = ind:size(rdd_gps_hist(:,:,j),1)
+        rdd_gps_hist(i,:,1) = rdd_gps_hist(ind-1,:,j);
+    end
+end
+
+end
+
 % Moving towards victim
 conditions = true(1,n+1);
 
@@ -740,7 +730,7 @@ while conditions(4)
 
         % check if victim is reached
         if norm(new_pose(1:2) - goal) <= threshold
-            fprintf('Vittima raggiunta, maestro\n');
+            fprintf('\nVictim reached!\n');
             break;
         end
 
@@ -788,11 +778,8 @@ while conditions(4)
             % Kalman Filter
             [rdd_gps_hist, rdd_est_hist, P] = KalmanFilter(1, time, u, new_pose, actual_pose, Q, R, mu_gps, mu_u, A, B, P, rdd_gps_hist, rdd_est_hist, occupancyGrid);
     
-            occupancyLocal1 = zeros(size(occupancyGridComplete));
-            camview = [round(new_pose(1))-fov/4 round(new_pose(1))+fov/4; round(new_pose(2)) round(new_pose(2))+fov/2];
-            camview(camview < 1) = 1;
-            camview(camview > 1000) = 1000;
-            occupancyLocal1(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2)) = occupancyGridComplete(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2));
+            occupancyLocal1 = getCameraView(1,new_pose,occupancyGridComplete,theta,fov);
+
             
             % check if it's reached
             if norm(target(1:3) - new_pose(1:3)) <= threshold
@@ -814,11 +801,7 @@ while conditions(4)
             % Kalman Filter
             [rdd_gps_hist, rdd_est_hist, P] = KalmanFilter(2, time, u, new_pose, actual_pose, Q, R, mu_gps, mu_u, A, B, P, rdd_gps_hist, rdd_est_hist, occupancyGrid);
     
-            occupancyLocal2 = zeros(size(occupancyGridComplete));
-            camview = [round(new_pose(1))-fov/4 round(new_pose(1))+fov/4; round(new_pose(2)) round(new_pose(2))+fov/2];
-            camview(camview < 1) = 1;
-            camview(camview > 1000) = 1000;
-            occupancyLocal2(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2)) = occupancyGridComplete(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2));
+            occupancyLocal2 = getCameraView(2,new_pose,occupancyGridComplete,theta,fov);
             
             % check if it's reached
             if norm(target(1:3) - new_pose(1:3)) <= threshold
@@ -840,11 +823,7 @@ while conditions(4)
             % Kalman Filter
             [rdd_gps_hist, rdd_est_hist, P] = KalmanFilter(3, time, u, new_pose, actual_pose, Q, R, mu_gps, mu_u, A, B, P, rdd_gps_hist, rdd_est_hist, occupancyGrid);
     
-            occupancyLocal3 = zeros(size(occupancyGridComplete));
-            camview = [round(new_pose(1))-fov/4 round(new_pose(1))+fov/4; round(new_pose(2)) round(new_pose(2))+fov/2];
-            camview(camview < 1) = 1;
-            camview(camview > 1000) = 1000;
-            occupancyLocal3(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2)) = occupancyGridComplete(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2));
+            occupancyLocal3 = getCameraView(3,new_pose,occupancyGridComplete,theta,fov);
             
             % check if it's reached
             if norm(target(1:3) - new_pose(1:3)) <= threshold
@@ -855,33 +834,30 @@ while conditions(4)
         % robot
         if rdd_hist(time+1,3,4) == 0
             rdd_hist(time+1,:,4) = rdd_hist(time,:,4);
+            rdd_est_hist(time+1,:,4) = rdd_est_hist(time,:,4);
+            rdd_gps_hist(time+1,:,4) = rdd_gps_hist(time,:,4);
         end
 
         cam = occupancyLocal1 & occupancyLocal2 & occupancyLocal3;
+        cam_plot = cam_plot | cam;
+        
         H_detected = WLS_distributed(cam, nWLS, sigma_cam, mWLS, pltWLS);
-
         occupancyGrid = occupancyGrid | H_detected;
     
         time = time + 1;
-        if time >= 1000
-            error('Error. Taking over 1000 time steps to complete the simulation');
+        if time >= 100000
+            error('Error. Taking over 10000 time steps to complete the simulation');
         end
-
+        
     end
 
 end
 
-
 %% Plot rescue path
-figure('Name','Test formation')
+figure('Name','Rescue path')
 hold on
 
-mesh(H);
-colormap('summer');
-contour3(H, 80, 'k', 'LineWidth', 1);
-colorbar;
-daspect([1 1 0.5]);
-view(3);
+plotScenario(H, xyzObstacles, nForestTree, nObstaclesrand);
 
 plot3(victims(2,1),victims(2,2),H(victims(2,2),victims(2,1))+10, 'p', 'MarkerSize', 20, 'MarkerFaceColor', 'y');
 
@@ -903,9 +879,203 @@ plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-ob', 'LineWidth', 2, 'Marker
 
 grid on;
 view(3);
+ax = gca;
+ax.YDir = 'reverse';
 xlabel('X');
 ylabel('Y');
 zlabel('Z');
 hold off
+saveas(gcf, 'Plot/Rescue_Path.eps', 'epsc');
 
+%% Plot 2D obtacles and path 
+
+cam_vec = [];
+obs_vec = [];
+
+for i = 1:1000
+    for j = 1:1000
+        if cam_plot(i,j) == 1
+            cam_vec = [cam_vec; i,j];
+        end
+        if occupancyGrid(i,j) == 1
+            obs_vec = [obs_vec; i,j];
+        end
+    end
+end
+
+figure('Name', 'Obstacles Camera and Path');
+hold on;
+plot(obs_vec(:,2), obs_vec(:,1), '.', 'Color', '#0072BD');
+plot(cam_vec(:,2), cam_vec(:,1), '.', 'Color', '#D95319');
+plot(rdd_hist(:, 1, 4), rdd_hist(:, 2, 4), '-', 'Color', '#EDB120', 'LineWidth', 0.5);
+axis equal;
+ax = gca;
+ax.YDir = 'reverse';
+xlim([0 1000]);
+ylim([0 1000]);
+legend('Priori known obstacles', 'Camera detected obstacles', 'Robot path', 'Location', 'eastoutside');
+
+%% Plot Real vs GPS vs Estimated trajectories end errors
+
+% ---------------------------- DRONES ----------------------------------
+
+all_hist = [pose_hist(:,:,1:3); rdd_hist(:,:,1:3)];
+all_gps_hist = [pose_gps_hist(:,:,1:3); rdd_gps_hist(:,:,1:3)];
+all_est_hist = [pose_est_hist(:,:,1:3); rdd_est_hist(:,:,1:3)];
+
+for d = 1:3  % Plot for each drone
+
+% Trajectories X
+figure('Name', sprintf('x Position Drone %d', d));
+hold on;
+plot(all_hist(1:end-1,1,d), '-r'); % true
+plot(all_gps_hist(1:end-1,1,d), '-b'); % gps 
+plot(all_est_hist(1:end-1,1,d), '-g'); % estimated
+legend('xTrue', 'xGPS', 'xEst');
+xlabel('Time');
+ylabel('x Position');
+saveas(gcf, sprintf('Plot/x_Position_Drone_%d.eps', d), 'epsc')
+
+% Error histogram X 
+figure('Name', sprintf('x Error Drone %d', d));
+histogram(all_est_hist(1:end-1,1,d)-all_hist(1:end-1,1,d));
+saveas(gcf, sprintf('Plot/x_Error_Drone_%d.eps', d), 'epsc')
+
+% Trajectories Y
+figure('Name', sprintf('y Position Drone %d', d));
+hold on;
+plot(all_hist(1:end-1,2,d), '-r'); % true
+plot(all_gps_hist(1:end-1,2,d), '-b'); % gps 
+plot(all_est_hist(1:end-1,2,d), '-g'); % estimated
+legend('yTrue', 'yGPS', 'yEst');
+xlabel('Time');
+ylabel('y Position');
+saveas(gcf, sprintf('Plot/y_Position_Drone_%d.eps', d), 'epsc')
+
+% Error histogram Y 
+figure('Name', sprintf('y Error Drone %d', d));
+histogram(all_est_hist(1:end-1,2,d)-all_hist(1:end-1,2,d));
+saveas(gcf, sprintf('Plot/y_Error_Drone_%d.eps', d), 'epsc')
+
+% Trajectories Z
+figure('Name', sprintf('z Position Drone %d', d));
+hold on;
+plot(all_hist(1:end-1,3,d), '-r'); % true
+plot(all_gps_hist(1:end-1,3,d), '-b'); % gps 
+plot(all_est_hist(1:end-1,3,d), '-g'); % estimated
+legend('zTrue', 'zGPS', 'zEst');
+xlabel('Time');
+ylabel('z Position');
+saveas(gcf, sprintf('Plot/z_Position_Drone_%d.eps', d), 'epsc')
+
+% Error histogram Z 
+figure('Name', sprintf('z Error Drone %d', d));
+histogram(all_est_hist(:,3,d)-all_hist(:,3,d));
+saveas(gcf, sprintf('Plot/z_Error_Drone_%d.eps', d), 'epsc')
+
+% Trajectories theta
+figure('Name', sprintf('theta Drone %d', d));
+hold on;
+plot(all_hist(1:end-1,4,d), '-r'); % true
+plot(all_gps_hist(1:end-1,4,d), '-b'); % gps 
+plot(all_est_hist(1:end-1,4,d), '-g'); % estimated
+legend('$\theta$ True', '$\theta$ GPS', '$\theta$ Est');
+xlabel('Time');
+ylabel('$\theta$');
+saveas(gcf, sprintf('Plot/theta_Drone_%d.eps', d), 'epsc')
+
+% Error histogram theta
+figure('Name', sprintf('theta Error Drone %d', d));
+histogram(all_est_hist(1:end-1,4,d)-all_hist(1:end-1,4,d));
+saveas(gcf, sprintf('Plot/thata_Error_Drone_%d.eps', d), 'epsc')
+
+end
+
+% ---------------------------- ROBOT ----------------------------------
+
+% Trajectories X
+figure('Name', 'x Position robot');
+hold on;
+plot(rdd_hist(1:end-1,1,4), '-r'); % true
+plot(rdd_gps_hist(1:end-1,1,4), '-b'); % gps 
+plot(rdd_est_hist(1:end-1,1,4), '-g'); % estimated
+legend('xTrue', 'xGPS', 'xEst');
+xlabel('Time');
+ylabel('x Position');
+saveas(gcf, 'Plot/x_Position_Robot.eps', 'epsc');
+
+% Error histogram X 
+figure('Name','x Error robot');
+histogram(rdd_est_hist(1:end-1,1,4)-rdd_hist(1:end-1,1,4));
+saveas(gcf, 'Plot/x_Error_Robot.eps', 'epsc');
+
+% Trajectories Y
+figure('Name', 'y Position robot');
+hold on;
+plot(rdd_hist(1:end-1,2,4), '-r'); % true
+plot(rdd_gps_hist(1:end-1,2,4), '-b'); % gps 
+plot(rdd_est_hist(1:end-1,2,4), '-g'); % estimated
+legend('yTrue', 'yGPS', 'yEst');
+xlabel('Time');
+ylabel('y Position');
+saveas(gcf, 'Plot/y_Position_Robot.eps', 'epsc');
+
+% Error histogram Y 
+figure('Name', 'y Error robot');
+histogram(rdd_est_hist(1:end-1,2,4)-rdd_hist(1:end-1,2,4));
+saveas(gcf, 'Plot/y_Error_Robot.eps', 'epsc');
+
+% Trajectories Z
+figure('Name', 'z Position robot');
+hold on;
+plot(rdd_hist(1:end-1,3,4), '-r'); % true
+plot(rdd_gps_hist(1:end-1,3,4), '-b'); % gps 
+plot(rdd_est_hist(1:end-1,3,4), '-g'); % estimated
+legend('zTrue', 'zGPS', 'zEst');
+xlabel('Time');
+ylabel('z Position');
+saveas(gcf, 'Plot/z_Position_Robot.eps', 'epsc');
+
+% Error histogram Z 
+figure('Name', 'z Error robot');
+histogram(rdd_est_hist(:,3,4)-rdd_hist(:,3,4));
+saveas(gcf, 'Plot/z_Error_Robot.eps', 'epsc');
+
+% Trajectories theta
+figure('Name', 'theta robot');
+hold on;
+plot(rdd_hist(1:end-1,4,4), '-r'); % true
+plot(rdd_gps_hist(1:end-1,4,4), '-b'); % gps 
+plot(rdd_est_hist(1:end-1,4,4), '-g'); % estimated
+legend('$\theta$ True', '$\theta$ GPS', '$\theta$ Est');
+xlabel('Time');
+ylabel('$\theta$');
+saveas(gcf, 'Plot/theta_Robot.eps', 'epsc');
+
+% Error histogram theta
+figure('Name', 'theta Error robot');
+histogram(rdd_est_hist(1:end-1,4,4)-rdd_hist(1:end-1,4,4));
+saveas(gcf, 'Plot/theta_Error_Robot.eps', 'epsc');
+
+
+%% Save time and distance to compare different simulations
+
+n_time_steps = size(rdd_hist(:, 1, 4), 1);                  % Number of time steps
+t_s = n_time_steps*dt;                                      % Time in seconds
+d = vecnorm(robot_depl(2, 1:2)-victims(2, 1:2), 2, 2);      % Distance robot-victim
+index = t_s/d;
+
+% Save to file
+filename = 'data.txt';
+file = fopen(filename, 'a');
+
+fprintf(file, '%d\n', index);
+
+fclose(file);
+
+%% Plot
+f = load("data.txt");
+val = f(:,1);
+figure('Name', 'Comparison')
+histogram(val);
 

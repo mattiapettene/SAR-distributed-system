@@ -17,6 +17,8 @@ function check = isObstacle(matrix, point1, point2)
     
     % Return initialization
     check = false;
+
+    th = 0;
     
     % Compute number of points on the line and their indices
     numPoints = (max(abs(x2 - x1), abs(y2 - y1)) + 1)*2;
@@ -29,8 +31,8 @@ function check = isObstacle(matrix, point1, point2)
         y = yIndices(i);
         
         % Check if the point is an obstacle in the map logic matrix
-        if x >= 1 && x <= size(matrix, 2) && y >= 1 && y <= size(matrix, 1)
-            if matrix(y, x) == 1
+        if x >= th+1 && x <= size(matrix, 2)-th-1 && y >= th+1 && y <= size(matrix, 1)-th-1
+            if matrix(y, x) == 1 || matrix(y+th, x+th) == 1 || matrix(y-th, x-th) == 1 || matrix(y-th, x+th) == 1 || matrix(y+th, x-th) == 1 
                 check = true;
                 return;
             end

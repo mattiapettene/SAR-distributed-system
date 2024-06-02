@@ -1,9 +1,9 @@
 function [xT, yT, zT, xC, yC, zC] = tree(xPos, yPos, zPos)
 
 %Tree dimensions
-trunkWidth = 10;
-treeHeight = 70;     
-crownRadius = 25;
+trunkWidth = 10*0.78;
+treeHeight = 70*0.78;     
+crownRadius = 25*0.78;
 
 [xTrunk, yTrunk, zTrunk] = cylinder(trunkWidth/2, 100);
 xTrunk = xTrunk + xPos;
