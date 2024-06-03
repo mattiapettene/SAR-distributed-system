@@ -25,7 +25,6 @@ tree = [start, 0, NaN];      % Tree initialization
 % ------------------------------ALGORITHM --------------------------------
 iter = 1;
 while iter < maxIterations
-    fprintf('%d\n', maxIterations);
 for iter=1:maxIterations
 
     % Random point generation
@@ -73,7 +72,6 @@ goal_indices = find(tree(:, 1)==goal(1) & tree(:, 2)==goal(2));
 if isempty(goal_indices)
     if maxIterations <= 8000
         maxIterations = maxIterations+500;
-        fprintf('Increasing number of iterations...\n');
     else
         path = [];
         error('Unable to find a path with this number of iterations! Please increase the number of iterations or try again!');
@@ -185,18 +183,29 @@ if plt
     colormap([1 1 1; 0 0 0]);
     hold on;
     axis equal;
+
+    plot(start(1), start(2), 'go', 'MarkerSize', 10, 'LineWidth', 2, 'MarkerFaceColor','g');
+    plot(goal(1), goal(2), 'ro', 'MarkerSize', 10, 'LineWidth', 2, 'MarkerFaceColor','r');
+
+    if ~isempty(path)
+        plot(path(:, 2), path(:, 1), '-r', 'LineWidth', 3)
+    end
     
     for i=2:length(tree)
         plot([tree(i, 2), tree(tree(i, 4), 2)], [tree(i, 1), tree(tree(i, 4), 1)], 'b')
         plot(tree(i, 2) ,tree(i, 1), '.b', 'MarkerSize', 10);
     end
-    if ~isempty(path)
-        plot(path(:, 2), path(:, 1), '-r', 'LineWidth', 3)
-    end
+
     plot(start(1), start(2), 'go', 'MarkerSize', 10, 'LineWidth', 2, 'MarkerFaceColor','g');
     plot(goal(1), goal(2), 'ro', 'MarkerSize', 10, 'LineWidth', 2, 'MarkerFaceColor','r');
 
-    set(gca, 'YDir', 'normal');
+    if ~isempty(path)
+        plot(path(:, 2), path(:, 1), '-r', 'LineWidth', 3)
+    end
+
+    set(gca, 'YDir', 'reverse');
+
+    legend('Starting point', 'Arrival point', 'Path found')
 
 end
 

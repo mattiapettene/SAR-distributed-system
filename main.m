@@ -248,13 +248,11 @@ warning('off', 'images:imshow:magnificationMustBeFitForDockedFigure')
 
 %% Voronoi tessellation
 
-fprintf('\nStarting Voronoi coverage iteration...\n');
 [c1, c2, c3, v1, v2, v3, a1, a2, a3, b1, b2, b3] = voronoi_coverage(H, sp_drone1, sp_drone2, sp_drone3, kp);
-fprintf('Voronoi coverage iteration finished!\n');
+
 
 %% Coverage path planning
 
-fprintf('\nComputing areas exploration path...\n');
 path1 = coveragePathPlanning(a1, fov, 0);
 path2 = coveragePathPlanning(a2, fov, 0);
 path3 = coveragePathPlanning(a3, fov, 1);
@@ -274,7 +272,6 @@ hold off;
 axis equal;
 saveas(gcf, 'Plot/coverage_path.eps', 'epsc')
 
-fprintf('Computing areas exploration path finished!\n');
 
 %% Searching for victim
 
@@ -402,7 +399,8 @@ while sum(conditions)
 end
 
 %% Rendezvous
-robot_depl = [200 1; 210 1; 220 1];
+
+robot_depl = [1 780; 1 800; 1 820];
 robot_id = 1;
 
 for i = 1 : size(drone_victim,2)
@@ -437,28 +435,28 @@ end
 %% Plots 
 figure('Name','Research and Randezvous')
 hold on
-plotScenario(H, xyzObstacles, nForestTree, nObstaclesrand);
 
 plot3(victims(2,1),victims(2,2),H(victims(2,2),victims(2,1))+offset, 'p', 'MarkerSize', 20, 'MarkerFaceColor', 'y');
 
 fullrows = pose_hist(:,:,1);
 fullrows = fullrows(fullrows(:,3) ~= 0, :);
-plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-or', 'LineWidth', 2, 'MarkerSize', 2);
+plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-or', 'LineWidth', 2, 'MarkerSize', 1.5);
 
 fullrows = pose_hist(:,:,2);
 fullrows = fullrows(fullrows(:,3) ~= 0, :);
-plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-oc', 'LineWidth', 2, 'MarkerSize', 2);
+plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-oc', 'LineWidth', 2, 'MarkerSize', 1.5);
 
 fullrows = pose_hist(:,:,3);
 fullrows = fullrows(fullrows(:,3) ~= 0, :);
-plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-om', 'LineWidth', 2, 'MarkerSize', 2);
+plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-om', 'LineWidth', 2, 'MarkerSize', 1.5);
+
+plotScenario(H, xyzObstacles, nForestTree, nObstaclesrand);
+
 grid on;
 view(3);
 ax = gca;
 ax.YDir = 'reverse';
-xlabel('X');
-ylabel('Y');
-zlabel('Z');
+legend('Victim position', 'Drone 1', 'Drone 2', 'Drone 3')
 hold off
 
 saveas(gcf, 'Plot/Research_and_Randezvous_path.eps', 'epsc');
@@ -541,12 +539,8 @@ target_index = ones(1,n+1);
 in_form = zeros(1,n);
 rdd_hist = zeros(1,4,n+1); % position 4 is for the robot
 
-%initialize (drones)
-%[col, ~] = find(pose_hist(:, :, 1), 1, 'last');
 rdd_hist(1,:,1) = pose_hist(end,:,1);
-%[col, ~] = find(pose_hist(:, :, 2), 1, 'last');
 rdd_hist(1,:,2) = pose_hist(end,:,2);
-%[col, ~] = find(pose_hist(:, :, 3), 1, 'last');
 rdd_hist(1,:,3) = pose_hist(end,:,3);
 rdd_hist(1,:,4) = [robot_depl(2,:), H(robot_depl(2,2),robot_depl(2,1))+offset_rob,0];
 
@@ -589,6 +583,9 @@ while sum(in_form) < 3
 
     elseif conditions(1) || in_form(1) == 1
         rdd_hist(time+1,:,1) = rdd_hist(time,:,1);
+        rdd_gps_hist(time+1,:,1) = rdd_gps_hist(time,:,1);
+        rdd_est_hist(time+1,:,1) = rdd_est_hist(time,:,1);
+
     end
 
     % drone 2
@@ -611,6 +608,8 @@ while sum(in_form) < 3
 
     elseif conditions(2) || in_form(2) == 1
         rdd_hist(time+1,:,2) = rdd_hist(time,:,2);
+        rdd_gps_hist(time+1,:,2) = rdd_gps_hist(time,:,2);
+        rdd_est_hist(time+1,:,2) = rdd_est_hist(time,:,2);
     end
 
     % drone 3
@@ -633,6 +632,8 @@ while sum(in_form) < 3
 
     elseif conditions(3) || in_form(3) == 1
         rdd_hist(time+1,:,3) = rdd_hist(time,:,3);
+        rdd_gps_hist(time+1,:,3) = rdd_gps_hist(time,:,3);
+        rdd_est_hist(time+1,:,3) = rdd_est_hist(time,:,3);
     end
 
     % robot
@@ -857,33 +858,31 @@ end
 figure('Name','Rescue path')
 hold on
 
-plotScenario(H, xyzObstacles, nForestTree, nObstaclesrand);
-
 plot3(victims(2,1),victims(2,2),H(victims(2,2),victims(2,1))+10, 'p', 'MarkerSize', 20, 'MarkerFaceColor', 'y');
 
 fullrows = rdd_hist(:,:,1);
 fullrows = fullrows(fullrows(:,3) ~= 0, :);
-plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-or', 'LineWidth', 2, 'MarkerSize', 2);
+plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-or', 'LineWidth', 2, 'MarkerSize', 1);
 
 fullrows = rdd_hist(:,:,2);
 fullrows = fullrows(fullrows(:,3) ~= 0, :);
-plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-oc', 'LineWidth', 2, 'MarkerSize', 2);
+plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-oc', 'LineWidth', 2, 'MarkerSize', 1);
 
 fullrows = rdd_hist(:,:,3);
 fullrows = fullrows(fullrows(:,3) ~= 0, :);
-plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-om', 'LineWidth', 2, 'MarkerSize', 2);
+plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-om', 'LineWidth', 2, 'MarkerSize', 1);
 
 fullrows = rdd_hist(:,:,4);
 fullrows = fullrows(fullrows(:,3) ~= 0, :);
-plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-ob', 'LineWidth', 2, 'MarkerSize', 2);
+plot3(fullrows(:,1), fullrows(:,2), fullrows(:,3),'-ob', 'LineWidth', 2, 'MarkerSize', 1);
+
+plotScenario(H, xyzObstacles, nForestTree, nObstaclesrand);
 
 grid on;
 view(3);
 ax = gca;
 ax.YDir = 'reverse';
-xlabel('X');
-ylabel('Y');
-zlabel('Z');
+legend('Victim position', 'Drone 1', 'Drone 2', 'Drone 3', 'Robot')
 hold off
 saveas(gcf, 'Plot/Rescue_Path.eps', 'epsc');
 
@@ -913,7 +912,7 @@ ax = gca;
 ax.YDir = 'reverse';
 xlim([0 1000]);
 ylim([0 1000]);
-legend('Priori known obstacles', 'Camera detected obstacles', 'Robot path', 'Location', 'eastoutside');
+legend('Priori known obstacles', 'Camera detected obstacles', 'Robot path');
 
 %% Plot Real vs GPS vs Estimated trajectories end errors
 
@@ -939,6 +938,8 @@ saveas(gcf, sprintf('Plot/x_Position_Drone_%d.eps', d), 'epsc')
 % Error histogram X 
 figure('Name', sprintf('x Error Drone %d', d));
 histogram(all_est_hist(1:end-1,1,d)-all_hist(1:end-1,1,d));
+xlabel('x Error');
+ylabel('Sample');
 saveas(gcf, sprintf('Plot/x_Error_Drone_%d.eps', d), 'epsc')
 
 % Trajectories Y
@@ -955,6 +956,8 @@ saveas(gcf, sprintf('Plot/y_Position_Drone_%d.eps', d), 'epsc')
 % Error histogram Y 
 figure('Name', sprintf('y Error Drone %d', d));
 histogram(all_est_hist(1:end-1,2,d)-all_hist(1:end-1,2,d));
+xlabel('y Error');
+ylabel('Sample');
 saveas(gcf, sprintf('Plot/y_Error_Drone_%d.eps', d), 'epsc')
 
 % Trajectories Z
@@ -971,6 +974,8 @@ saveas(gcf, sprintf('Plot/z_Position_Drone_%d.eps', d), 'epsc')
 % Error histogram Z 
 figure('Name', sprintf('z Error Drone %d', d));
 histogram(all_est_hist(:,3,d)-all_hist(:,3,d));
+xlabel('z Error');
+ylabel('Sample');
 saveas(gcf, sprintf('Plot/z_Error_Drone_%d.eps', d), 'epsc')
 
 % Trajectories theta
@@ -987,6 +992,8 @@ saveas(gcf, sprintf('Plot/theta_Drone_%d.eps', d), 'epsc')
 % Error histogram theta
 figure('Name', sprintf('theta Error Drone %d', d));
 histogram(all_est_hist(1:end-1,4,d)-all_hist(1:end-1,4,d));
+xlabel('$\theta$ Error');
+ylabel('Sample');
 saveas(gcf, sprintf('Plot/thata_Error_Drone_%d.eps', d), 'epsc')
 
 end
@@ -1007,6 +1014,8 @@ saveas(gcf, 'Plot/x_Position_Robot.eps', 'epsc');
 % Error histogram X 
 figure('Name','x Error robot');
 histogram(rdd_est_hist(1:end-1,1,4)-rdd_hist(1:end-1,1,4));
+xlabel('x Error');
+ylabel('Sample');
 saveas(gcf, 'Plot/x_Error_Robot.eps', 'epsc');
 
 % Trajectories Y
@@ -1023,6 +1032,8 @@ saveas(gcf, 'Plot/y_Position_Robot.eps', 'epsc');
 % Error histogram Y 
 figure('Name', 'y Error robot');
 histogram(rdd_est_hist(1:end-1,2,4)-rdd_hist(1:end-1,2,4));
+xlabel('y Error');
+ylabel('Sample');
 saveas(gcf, 'Plot/y_Error_Robot.eps', 'epsc');
 
 % Trajectories Z
@@ -1039,6 +1050,8 @@ saveas(gcf, 'Plot/z_Position_Robot.eps', 'epsc');
 % Error histogram Z 
 figure('Name', 'z Error robot');
 histogram(rdd_est_hist(:,3,4)-rdd_hist(:,3,4));
+xlabel('z Error');
+ylabel('Sample');
 saveas(gcf, 'Plot/z_Error_Robot.eps', 'epsc');
 
 % Trajectories theta
@@ -1055,6 +1068,8 @@ saveas(gcf, 'Plot/theta_Robot.eps', 'epsc');
 % Error histogram theta
 figure('Name', 'theta Error robot');
 histogram(rdd_est_hist(1:end-1,4,4)-rdd_hist(1:end-1,4,4));
+xlabel('$\theta$ Error');
+ylabel('Sample');
 saveas(gcf, 'Plot/theta_Error_Robot.eps', 'epsc');
 
 

@@ -3,7 +3,6 @@ function  plotScenario(H, xyzObstacles, nForestTree, nObstaclesrand)
 mesh(H);
 colormap('summer');
 contour3(H, 80, 'k', 'LineWidth', 1);
-colorbar;
 daspect([1 1 0.5]);
 view(3);
 
