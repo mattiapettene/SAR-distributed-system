@@ -19,7 +19,7 @@ addpath('Plot/');
 
 %% Simulation parameters
 
-dt = 2;                 % Time step (s)
+dt = 0.5;                 % Time step (s)
 fov = 40;               % Camera FoV (m)
 sp_drone1 = [1,1];      % Starting point drone 1
 sp_drone2 = [1,10];     % Starting point drone 2
@@ -390,7 +390,7 @@ for i = 1 : size(drone_victim,2)
     pose_hist = updateDronePosition(H,robot_depl(i,:),pose_hist,vmax,offset,dt,threshold,i);
 end
 
-
+%%
 %scale = 10;
 figure('Name','Test rendezvous')
 hold on
@@ -671,11 +671,6 @@ while conditions(4)
             conditions(4) = false;
         end
 
-        dist = pdist2(new_pose(1:2),victims);
-        mindist = min(dist);
-        if mindist <= fov/2
-            break;
-        end
     end
 
     % new formation positions  
@@ -683,6 +678,9 @@ while conditions(4)
     
     % insert here the new RRT* trajectory
     test_traj = test_traj(2:end, :);
+    if size(test_traj,1) == 0
+        break
+    end
 
     clear path1d path2d path3d
     % build formation
@@ -755,7 +753,7 @@ while conditions(4)
         camview(camview < 1) = 1;
         camview(camview > 1000) = 1000;
         occupancyLocal3(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2)) = occupancyGridComplete(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2));
-        occupancyGrid = occupancyLocal1 | occupancyGrid;
+        occupancyGrid = occupancyLocal3 | occupancyGrid;
     end
 
     

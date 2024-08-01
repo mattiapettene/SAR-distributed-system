@@ -19,7 +19,7 @@ addpath('Plot/');
 
 %% Simulation parameters
 
-dt = 2;                 % Time step (s)
+dt = 0.5;                 % Time step (s)
 fov = 40;               % Camera FoV (m)
 sp_drone1 = [1,1];      % Starting point drone 1
 sp_drone2 = [1,10];     % Starting point drone 2
@@ -390,7 +390,7 @@ for i = 1 : size(drone_victim,2)
     pose_hist = updateDronePosition(H,robot_depl(i,:),pose_hist,vmax,offset,dt,threshold,i);
 end
 
-
+%%
 %scale = 10;
 figure('Name','Test rendezvous')
 hold on
@@ -471,7 +471,7 @@ test_traj = [x_vals_int', y_vals_int'];
 clear x_vals_int y_vals_int x_vals y_vals;
 
 % create full obstacle
-new_obstacle_number = 500; 
+new_obstacle_number = 1000; 
 new_occupancy = false(size(occupancyGrid));
 
 rand_pos = randperm(numel(occupancyGrid), new_obstacle_number);
@@ -544,9 +544,9 @@ path3d(:,2) = test_traj(:, 2) + abs(formation(3))*sin(theta)*farward + formation
 path1d(path1d < 1) = 1;
 path2d(path2d < 1) = 1;
 path3d(path3d < 1) = 1;
-path1d(path1d > 1001) = 1000;
-path2d(path2d > 1001) = 1000;
-path3d(path3d > 1001) = 1000;
+path1d(path1d > 1000) = 1000;
+path2d(path2d > 1000) = 1000;
+path3d(path3d > 1000) = 1000;
 
 conditions = true(1,n+1);
 conditions(logical(drone_victim)) = false;
@@ -683,7 +683,7 @@ while conditions(4)
     
     % insert here the new RRT* trajectory
     test_traj = test_traj(2:end, :);
-
+    if
     clear path1d path2d path3d
     % build formation
     path1d(:,1) = test_traj(:, 1) + abs(formation(1))*cos(theta)*farward + formation(1)*cos(pi/2+theta)*lateral;
@@ -697,9 +697,9 @@ while conditions(4)
     path1d(path1d < 1) = 1;
     path2d(path2d < 1) = 1;
     path3d(path3d < 1) = 1;
-    path1d(path1d > 1001) = 1000;
-    path2d(path2d > 1001) = 1000;
-    path3d(path3d > 1001) = 1000;
+    path1d(path1d > 1000) = 1000;
+    path2d(path2d > 1000) = 1000;
+    path3d(path3d > 1000) = 1000;
 
     % Drone 1
     if conditions(1)
@@ -713,7 +713,10 @@ while conditions(4)
         rdd_hist(time+1,:,2) = new_pose;
 
         occupancyLocal1 = zeros(size(occupancyGridComplete));
-        occupancyLocal1(round(new_pose(1))-fov/2 : round(new_pose(1))+fov/2, round(new_pose(2)-fov/2 : round(new_pose(2))+fov/2)) = occupancyGridComplete(round(new_pose(1))-fov/2 : round(new_pose(1))+fov/2, round(new_pose(2)-fov/2 : round(new_pose(2))+fov/2));
+        camview = [round(new_pose(1))-fov/2 round(new_pose(1))+fov/2; round(new_pose(2))-fov/2 round(new_pose(2))+fov/2];
+        camview(camview < 1) = 1;
+        camview(camview > 1000) = 1000;
+        occupancyLocal1(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2)) = occupancyGridComplete(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2));
         occupancyGrid = occupancyLocal1 | occupancyGrid;
     end
 
@@ -729,7 +732,10 @@ while conditions(4)
         rdd_hist(time+1,:,2) = new_pose;
 
         occupancyLocal2 = zeros(size(occupancyGridComplete));
-        occupancyLocal2(round(new_pose(1))-fov/2 : round(new_pose(1))+fov/2, round(new_pose(2)-fov/2 : round(new_pose(2))+fov/2)) = occupancyGridComplete(round(new_pose(1))-fov/2 : round(new_pose(1))+fov/2, round(new_pose(2)-fov/2 : round(new_pose(2))+fov/2));
+        camview = [round(new_pose(1))-fov/2 round(new_pose(1))+fov/2; round(new_pose(2))-fov/2 round(new_pose(2))+fov/2];
+        camview(camview < 1) = 1;
+        camview(camview > 1000) = 1000;
+        occupancyLocal2(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2)) = occupancyGridComplete(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2));
         occupancyGrid = occupancyLocal2 | occupancyGrid;
     end
 
@@ -747,9 +753,9 @@ while conditions(4)
         occupancyLocal3 = zeros(size(occupancyGridComplete));
         camview = [round(new_pose(1))-fov/2 round(new_pose(1))+fov/2; round(new_pose(2))-fov/2 round(new_pose(2))+fov/2];
         camview(camview < 1) = 1;
-        path1d(path1d > 1001) = 1000;
-        occupancyLocal3(round(new_pose(1))-fov/2 : round(new_pose(1))+fov/2, round(new_pose(2)-fov/2 : round(new_pose(2))+fov/2)) = occupancyGridComplete(round(new_pose(1))-fov/2 : round(new_pose(1))+fov/2, round(new_pose(2)-fov/2 : round(new_pose(2))+fov/2));
-        occupancyGrid = occupancyLocal1 | occupancyGrid;
+        camview(camview > 1000) = 1000;
+        occupancyLocal3(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2)) = occupancyGridComplete(camview(1,1) : camview(1,2), camview(2,1) : camview(2,2));
+        occupancyGrid = occupancyLocal3 | occupancyGrid;
     end
 
     
