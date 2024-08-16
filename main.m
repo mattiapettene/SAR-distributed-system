@@ -24,15 +24,15 @@ sp_drone1 = [1,1];              % Starting point drone 1
 sp_drone2 = [1,10];             % Starting point drone 2
 sp_drone3 = [10,1];             % Starting point drone 3
 kp = 1/dt;                      % Voronoi kp parameter
-threshold = 0.8;                % Set target accuracy [m]
-vmax = [10,10,10];              % Drone maximum velocities (vx, vy, vz) [m/s]
+threshold = 0.8;                % Set target accuracy
+vmax = [10,10,10];              % Drone maximum velocities (vx, vy, vz)
 offset = 100;                   % Distance from ground
-fov = round(offset*tand(30));   % Camera FoV (m)
+fov = round(offset*tand(30));   % Camera FoV
 
 % RRT* parameters
-maxIterations = 2000;
-stepSize = 15;
-radius = 25;
+maxIterations = 2500;
+stepSize = 14;
+radius = 24;
 goalbias = 1;
 bias = 0.1;
 bias_radius = 200;
@@ -91,7 +91,7 @@ contour3(H_flip, 80, 'k', 'LineWidth', 1);
 colorbar;
 daspect([1 1 0.5]);
 view(3);
-saveas(gcf, 'Plot/3D_map.eps', 'epsc')
+exportgraphics(gcf, 'Plot/3D_map.pdf')
 
 %% Map gradient matrix
 
@@ -105,12 +105,12 @@ slope = rad2deg(atan(gradmod));
 figure('Name','Terrain slope');
 contour(1:1:mapWidth,1:1:mapLength,H)
 hold on
-quiver(1:1:mapWidth,1:1:mapLength,gradx,grady)
+quiver(1:1:mapWidth,1:1:mapLength,grady,gradx)
 axis equal
 ax = gca;
 ax.YDir = 'reverse';
 hold off
-saveas(gcf, 'Plot/terrain_slope.eps', 'epsc')
+exportgraphics(gcf, 'Plot/terrain_slope.pdf')
 
 % Satellite image in background
 
@@ -232,7 +232,7 @@ view(3);
 ax = gca;
 ax.YDir = 'reverse';
 hold off;
-saveas(gcf, 'Plot/3D_map_trees.eps', 'epsc')
+exportgraphics(gcf, 'Plot/3D_map_trees.pdf')
 
 figure('Name','Real trees location')
 hold on
@@ -242,7 +242,7 @@ hImg = imshow(I, 'InitialMagnification', 'fit');
 set(hImg, 'AlphaData', 0.6);
 spy(BW);
 hold off
-saveas(gcf, 'Plot/real_trees_satellite.eps', 'epsc')
+exportgraphics(gcf, 'Plot/real_trees_satellite.pdf')
 
 warning('off', 'images:imshow:magnificationMustBeFitForDockedFigure')
 
@@ -270,12 +270,13 @@ plot(path2(:,1), path2(:,2), '-', 'Color', 'r', 'LineWidth', 2);
 plot(path3(:,1), path3(:,2), '-', 'Color', 'r', 'LineWidth', 2);
 hold off;
 axis equal;
-saveas(gcf, 'Plot/coverage_path.eps', 'epsc')
+exportgraphics(gcf, 'Plot/coverage_path.pdf')
 
 
 %% Searching for victim
 
 victims = [980 980; randi([20,980]) randi([20,980])];
+% victims = [980 980; 800 300];
 n = 3; % numero droni
 drone_victim = zeros(1,n);
 warning('off', 'all');
@@ -459,7 +460,7 @@ ax.YDir = 'reverse';
 legend('Victim position', 'Drone 1', 'Drone 2', 'Drone 3')
 hold off
 
-saveas(gcf, 'Plot/Research_and_Randezvous_path.eps', 'epsc');
+exportgraphics(gcf, 'Plot/Research_and_Randezvous_path.pdf');
 
 %% RRT* path planning
 
@@ -739,8 +740,12 @@ while conditions(4)
 
     
     % New RRT* trajectory
+    try
     [rrt_tree, rrt_path] = rrt_star(occupancyGrid, new_pose(1:2), goal, maxIterations, stepSize, radius, goalbias, bias, bias_radius, 0, slope);
     path4 = rrt_path;
+    catch
+    path4 = rrt_path;
+    end
 
     % New formation positions  
     theta = atan2((path4(2,2)-path4(1,2)),(path4(2,1)-path4(1,1)));
@@ -884,7 +889,7 @@ ax = gca;
 ax.YDir = 'reverse';
 legend('Victim position', 'Drone 1', 'Drone 2', 'Drone 3', 'Robot')
 hold off
-saveas(gcf, 'Plot/Rescue_Path.eps', 'epsc');
+exportgraphics(gcf, 'Plot/Rescue_Path.pdf');
 
 %% Plot 2D obtacles and path 
 
@@ -933,14 +938,14 @@ plot(all_est_hist(1:end-1,1,d), '-g'); % estimated
 legend('xTrue', 'xGPS', 'xEst');
 xlabel('Time');
 ylabel('x Position');
-saveas(gcf, sprintf('Plot/x_Position_Drone_%d.eps', d), 'epsc')
+exportgraphics(gcf, sprintf('Plot/x_Position_Drone_%d.pdf', d))
 
 % Error histogram X 
 figure('Name', sprintf('x Error Drone %d', d));
 histogram(all_est_hist(1:end-1,1,d)-all_hist(1:end-1,1,d));
 xlabel('x Error');
 ylabel('Sample');
-saveas(gcf, sprintf('Plot/x_Error_Drone_%d.eps', d), 'epsc')
+exportgraphics(gcf, sprintf('Plot/x_Error_Drone_%d.pdf', d))
 
 % Trajectories Y
 figure('Name', sprintf('y Position Drone %d', d));
@@ -951,14 +956,14 @@ plot(all_est_hist(1:end-1,2,d), '-g'); % estimated
 legend('yTrue', 'yGPS', 'yEst');
 xlabel('Time');
 ylabel('y Position');
-saveas(gcf, sprintf('Plot/y_Position_Drone_%d.eps', d), 'epsc')
+exportgraphics(gcf, sprintf('Plot/y_Position_Drone_%d.pdf', d))
 
 % Error histogram Y 
 figure('Name', sprintf('y Error Drone %d', d));
 histogram(all_est_hist(1:end-1,2,d)-all_hist(1:end-1,2,d));
 xlabel('y Error');
 ylabel('Sample');
-saveas(gcf, sprintf('Plot/y_Error_Drone_%d.eps', d), 'epsc')
+exportgraphics(gcf, sprintf('Plot/y_Error_Drone_%d.pdf', d))
 
 % Trajectories Z
 figure('Name', sprintf('z Position Drone %d', d));
@@ -969,14 +974,14 @@ plot(all_est_hist(1:end-1,3,d), '-g'); % estimated
 legend('zTrue', 'zGPS', 'zEst');
 xlabel('Time');
 ylabel('z Position');
-saveas(gcf, sprintf('Plot/z_Position_Drone_%d.eps', d), 'epsc')
+exportgraphics(gcf, sprintf('Plot/z_Position_Drone_%d.pdf', d))
 
 % Error histogram Z 
 figure('Name', sprintf('z Error Drone %d', d));
 histogram(all_est_hist(:,3,d)-all_hist(:,3,d));
 xlabel('z Error');
 ylabel('Sample');
-saveas(gcf, sprintf('Plot/z_Error_Drone_%d.eps', d), 'epsc')
+exportgraphics(gcf, sprintf('Plot/z_Error_Drone_%d.pdf', d))
 
 % Trajectories theta
 figure('Name', sprintf('theta Drone %d', d));
@@ -987,14 +992,14 @@ plot(all_est_hist(1:end-1,4,d), '-g'); % estimated
 legend('$\theta$ True', '$\theta$ GPS', '$\theta$ Est');
 xlabel('Time');
 ylabel('$\theta$');
-saveas(gcf, sprintf('Plot/theta_Drone_%d.eps', d), 'epsc')
+exportgraphics(gcf, sprintf('Plot/theta_Drone_%d.pdf', d))
 
 % Error histogram theta
 figure('Name', sprintf('theta Error Drone %d', d));
 histogram(all_est_hist(1:end-1,4,d)-all_hist(1:end-1,4,d));
 xlabel('$\theta$ Error');
 ylabel('Sample');
-saveas(gcf, sprintf('Plot/thata_Error_Drone_%d.eps', d), 'epsc')
+exportgraphics(gcf, sprintf('Plot/thata_Error_Drone_%d.pdf', d))
 
 end
 
@@ -1009,14 +1014,14 @@ plot(rdd_est_hist(1:end-1,1,4), '-g'); % estimated
 legend('xTrue', 'xGPS', 'xEst');
 xlabel('Time');
 ylabel('x Position');
-saveas(gcf, 'Plot/x_Position_Robot.eps', 'epsc');
+exportgraphics(gcf, 'Plot/x_Position_Robot.pdf');
 
 % Error histogram X 
 figure('Name','x Error robot');
 histogram(rdd_est_hist(1:end-1,1,4)-rdd_hist(1:end-1,1,4));
 xlabel('x Error');
 ylabel('Sample');
-saveas(gcf, 'Plot/x_Error_Robot.eps', 'epsc');
+exportgraphics(gcf, 'Plot/x_Error_Robot.pdf');
 
 % Trajectories Y
 figure('Name', 'y Position robot');
@@ -1027,14 +1032,14 @@ plot(rdd_est_hist(1:end-1,2,4), '-g'); % estimated
 legend('yTrue', 'yGPS', 'yEst');
 xlabel('Time');
 ylabel('y Position');
-saveas(gcf, 'Plot/y_Position_Robot.eps', 'epsc');
+exportgraphics(gcf, 'Plot/y_Position_Robot.pdf');
 
 % Error histogram Y 
 figure('Name', 'y Error robot');
 histogram(rdd_est_hist(1:end-1,2,4)-rdd_hist(1:end-1,2,4));
 xlabel('y Error');
 ylabel('Sample');
-saveas(gcf, 'Plot/y_Error_Robot.eps', 'epsc');
+exportgraphics(gcf, 'Plot/y_Error_Robot.pdf');
 
 % Trajectories Z
 figure('Name', 'z Position robot');
@@ -1045,14 +1050,14 @@ plot(rdd_est_hist(1:end-1,3,4), '-g'); % estimated
 legend('zTrue', 'zGPS', 'zEst');
 xlabel('Time');
 ylabel('z Position');
-saveas(gcf, 'Plot/z_Position_Robot.eps', 'epsc');
+exportgraphics(gcf, 'Plot/z_Position_Robot.pdf');
 
 % Error histogram Z 
 figure('Name', 'z Error robot');
 histogram(rdd_est_hist(:,3,4)-rdd_hist(:,3,4));
 xlabel('z Error');
 ylabel('Sample');
-saveas(gcf, 'Plot/z_Error_Robot.eps', 'epsc');
+exportgraphics(gcf, 'Plot/z_Error_Robot.pdf');
 
 % Trajectories theta
 figure('Name', 'theta robot');
@@ -1063,14 +1068,15 @@ plot(rdd_est_hist(1:end-1,4,4), '-g'); % estimated
 legend('$\theta$ True', '$\theta$ GPS', '$\theta$ Est');
 xlabel('Time');
 ylabel('$\theta$');
-saveas(gcf, 'Plot/theta_Robot.eps', 'epsc');
+exportgraphics(gcf, 'Plot/theta_Robot.pdf');
 
 % Error histogram theta
 figure('Name', 'theta Error robot');
 histogram(rdd_est_hist(1:end-1,4,4)-rdd_hist(1:end-1,4,4));
 xlabel('$\theta$ Error');
 ylabel('Sample');
-saveas(gcf, 'Plot/theta_Error_Robot.eps', 'epsc');
+fig.Position(3:4) = [500 500];
+exportgraphics(gcf, 'Plot/theta_Error_Robot.pdf');
 
 
 %% Save time and distance to compare different simulations
@@ -1088,9 +1094,9 @@ fprintf(file, '%d\n', index);
 
 fclose(file);
 
-%% Plot
+% Plot
 f = load("data.txt");
 val = f(:,1);
 figure('Name', 'Comparison')
+set(gcf, 'Position', [100, 100, 700, 500]);
 histogram(val);
-

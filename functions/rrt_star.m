@@ -206,6 +206,7 @@ if plt
     set(gca, 'YDir', 'reverse');
 
     legend('Starting point', 'Arrival point', 'Path found')
+    exportgraphics(gcf, 'Plot/rrt.pdf');
 
 end
 

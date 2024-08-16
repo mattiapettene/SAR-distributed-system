@@ -10,11 +10,6 @@ function [c1, c2, c3, v1, v2, v3, a1, a2, a3, b1, b2, b3] = voronoi_coverage(H, 
 % sp_drone1, sp_drone2, sp_drone3 -> starting points [x,y] for each drone
 % kp -> tuning parameter for Lloyd control
 
-% TO BE IMPLEMENTED/FIXED
-% 1 - essendo punti di partenza e centroid molto distanti tra loro, ho
-% velocità molto alte, per cui si potrebbe mettere un sensing range 
-% 2 - si potrebbe mettere un agents collision avoidance
-
 [X, Y] = meshgrid(1:size(H, 1), 1:size(H, 2));
 voronoi_grid = [X(:), Y(:)];
 
@@ -111,12 +106,12 @@ fill(points_area3(boundary3, 1), points_area3(boundary3, 2), [1, 1, 0.7490], 'Fa
 plot(centroid_area1(2), centroid_area1(1),'o', 'MarkerSize', 20, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', [0.7, 0.7, 0.7]);
 plot(centroid_area2(2), centroid_area2(1), 'o', 'MarkerSize', 20, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', [0.7, 0.7, 0.7]);
 plot(centroid_area3(2), centroid_area3(1), 'o', 'MarkerSize', 20, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', [0.7, 0.7, 0.7]);
-plot(centroid_x1, centroid_y1, 'k--', 'LineWidth', 0.8);
-plot(centroid_x2, centroid_y2, 'k--', 'LineWidth', 0.8);
-plot(centroid_x3, centroid_y3, 'k--', 'LineWidth', 0.8);
+% plot(centroid_x1, centroid_y1, 'k--', 'LineWidth', 0.8);
+% plot(centroid_x2, centroid_y2, 'k--', 'LineWidth', 0.8);
+% plot(centroid_x3, centroid_y3, 'k--', 'LineWidth', 0.8);
 hold off;
 axis equal;
-saveas(gcf, 'Plot/voronoi_coverage.eps', 'epsc')
+exportgraphics(gcf, 'Plot/voronoi_coverage.pdf')
 
 % OUTPUTS
 c1 = [centroid_x1, centroid_y1];
